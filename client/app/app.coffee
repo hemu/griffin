@@ -1,12 +1,17 @@
 'use strict'
 
+angular.module 'griffinApp.game', []
+
+# Specify all module dependencies for our griffinApp.
 angular.module 'griffinApp', [
   'ngCookies',
   'ngResource',
   'ngSanitize',
   'ngRoute',
   'btford.socket-io',
-  'ui.bootstrap'
+  'ui.bootstrap',
+  'griffinApp.game'
+  # The main client game module which contains all phaser code.
 ]
 .config ($routeProvider, $locationProvider, $httpProvider) ->
   $routeProvider
