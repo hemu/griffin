@@ -20,11 +20,15 @@ if(config.seedDB) { require('./config/seed'); }
 // Setup server
 var app = express();
 var server = require('http').createServer(app);
+// socketio is actually handled by angular-socket-io module
+// which wraps functionality in a socket service
+// https://github.com/btford/angular-socket-io
 var socketio = require('socket.io')(server, {
   serveClient: (config.env === 'production') ? false : true,
   path: '/socket.io-client'
 });
 require('./config/socketio')(socketio);
+require('./routes-sockets/io-route.js')(app, socketio);
 require('./config/express')(app);
 require('./routes')(app);
 

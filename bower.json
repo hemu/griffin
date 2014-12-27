@@ -15,7 +15,7 @@
     "font-awesome": ">=4.1.0",
     "lodash": "~2.4.1",
     "angular-socket-io": "~0.6.0",
-    "phaser": "~2.2.1"
+    "phaser": "2.0.7"
   },
   "devDependencies": {
     "angular-mocks": ">=1.2.*",

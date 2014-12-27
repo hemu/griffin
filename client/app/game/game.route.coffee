@@ -4,4 +4,3 @@ angular.module 'griffinApp.game'
   .when '/game',
     templateUrl: 'app/game/game.html'
     controller: 'GameCtrl'
-    console.log "/ route triggered"
