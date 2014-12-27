@@ -50,7 +50,9 @@ class @SessionHost
 
     # This is our own game logic World class, not to be confused with
     # Phaser's built in @game.world
-    @world = WorldCreator.loadFromImage(this)
+    @world = WorldCreator.loadFromImage(this, 'world_bridge')
+    @world.setSpawnOrder([2,0,1,3])
+    console.log @world.spawnOrder
     # world will set bounds of the game, from that need to set background
     # scale to the max scale of world bounds
     bgX = @game.world.width / @background.width / GameConstants.cameraScale
@@ -66,9 +68,13 @@ class @SessionHost
 
     num_players = 0
     for id in player_ids
+      spawnXY = @world.getSpawnForPlayerNum(num_players)
+      if spawnXY == null
+        num_players++
+        continue
       # instantiate player objects and add to @players list
       player = new Player(this)
-      player.initialize(this, id, 500 + num_players*300, 800,
+      player.initialize(this, id, spawnXY[0], spawnXY[1],
         GameConstants.playerScale, 0)
       player.initHealth(100)
       @players.push player
@@ -180,12 +186,18 @@ class @SessionHost
   playerFire: () ->
     @active_player.fire()
 
-  tryEndPlayerTurn: ->
+  tryEndPlayerTurn: (died=false) ->
     if @active_player == null
       return
 
-    @player_delays[@active_player.id] += 100
-    @active_player.active = false
+    console.log 'ending player ' + @active_player.id
+
+    if died
+      @removePlayer(@active_player)
+    else
+      @player_delays[@active_player.id] += 100
+      @active_player.active = false
+
     @active_player = null
     # Kick off variable and timer to start end turn countdown
     @endingTurn = true

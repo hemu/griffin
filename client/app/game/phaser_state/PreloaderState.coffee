@@ -27,7 +27,8 @@ class @PreloaderState extends Phaser.State
     @game.load.image("flare", @getAssetPath("flare.png"))
     @game.load.image("pebble", @getAssetPath("pebble.png"))
 
-    @game.load.image("ground", @getAssetPath("ground.png"))
+    #@game.load.image("ground", @getAssetPath("ground.png"))
+    @game.load.image("world_bridge", @getAssetPath("world_bridge.png"))
     @game.load.image("background", @getAssetPath("background.png"))
     @game.load.image("health", @getAssetPath("health.png"))
     @game.load.image("healthbar", @getAssetPath("healthbar.png"))

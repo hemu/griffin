@@ -1,4 +1,6 @@
 class @WorldCreator
+  @spawnColor = 'rgba(255,51,255,1)'  # Corresponds to #ff33ff
+
   @rgbaFormat: (r,g,b,a) ->
     return 'rgba('+r+','+g+','+b+','+a/255.0+')'
 
@@ -21,9 +23,10 @@ class @WorldCreator
       b: parseInt(result[3], 16)
     else null)
 
-  @loadFromImage: (shost) ->
+  @loadFromImage: (shost, map_name) ->
+
     # XXX need to decouple this image loading from phaser
-    img = shost.game.cache.getImage("ground")
+    img = shost.game.cache.getImage(map_name)
     canvas = document.createElement('canvas')
     context = canvas.getContext('2d')
     # Important!  Need to set canvas width and height to match the
@@ -47,8 +50,9 @@ class @WorldCreator
         blue = pixelData[((img.width * y) + x) * 4 + 2]
         alpha = pixelData[((img.width * y) + x) * 4 + 3]
         rgba = @rgbaFormat(red, green, blue, alpha)
-        #if rgba == spawnColor
-        #do stuff with spawn, etc
+        # If the point is a spawn point, store it
+        if rgba == @spawnColor
+          world.addSpawnPoint(x, y)
         world.data[x][y] = world.futureData[x][y] = rgba
     world.render(true)
     return world
@@ -74,6 +78,15 @@ class @World
   constructor: (@shost, @width, @height, @tileSize=2) ->
     @data = []
     @futureData = []
+    # store the spawn positions pairs, e.g., [[x,y], [x,y]], and sort by
+    # X position, then use the spawn order passed by the map spec to determine
+    # where players should spawn
+    @spawnPoints = []
+    # can pass in a custom spawn order for the map.  Based on X-sorted
+    # spawn points, order in which players should be spawned at points.
+    # For example, for 4 spawn points, [0,2,3,1] would spawn the first 2 
+    # players at the far ends
+    @spawnOrder = [0,1,2,3,4,5,6,7]
 
     @emptyColor = 'rgba(0,0,0,0)'
 
@@ -93,6 +106,46 @@ class @World
     @render(true)
 
     @createSurroundingSpace()
+
+  addSpawnPoint: (x, y) ->
+    @spawnPoints.push([
+      (x + @offX) * @tileSize, (y + @offY) * @tileSize])
+    sortBy = (a, b) ->
+      if a[0] < b[0]
+        return -1
+      else if a[0] > b[0]
+        return 1
+      else
+        return a[1] > b[1]
+    @spawnPoints.sort (a,b) ->
+      sortBy(a, b)
+
+  setSpawnOrder: (order) ->
+    # If there are less spawn orders than spawn points, then ignore the order
+    # passed in and set a default
+    if order.length < @spawnPoints.length
+      @spawnOrder = []
+      for i in [0...@spawnPoints.length]
+        @spawnOrder.push(i)
+    # If there are more spawn orders than spawn points, remove the unnecessary
+    # ones
+    else if order.length > @spawnPoints.length
+      @spawnOrder = []
+      for num in order
+        if num < @spawnPoints.length
+          @spawnOrder.push(num)
+    else
+      @spawnOrder = order
+
+  getSpawnForPlayerNum: (num) ->
+    if num >= @spawnPoints.length
+      return null
+    spawn_i = 0
+    for i in [0...@spawnOrder.length]
+      if @spawnOrder[i] == num
+        spawn_i = i
+        break
+    return @spawnPoints[spawn_i]
 
   createSurroundingSpace: () ->
     # The play area of the world, brought in by the image, will take up
@@ -165,16 +218,16 @@ class @World
     true
 
   xTileForWorld: (world) ->
-    Math.floor(world / @tileSize) - @offX
+    Math.floor(world / @tileSize - @offX)
 
   yTileForWorld: (world) ->
-    Math.floor(world / @tileSize) - @offY
+    Math.floor(world / @tileSize - @offY)
 
   xWorldForTile: (tile) ->
-    Math.floor(tile * @tileSize) + @offX * @tileSize
+    Math.floor(tile * @tileSize + @offX * @tileSize)
 
   yWorldForTile: (tile) ->
-    Math.floor(tile * @tileSize) + @offY * @tileSize
+    Math.floor(tile * @tileSize + @offY * @tileSize)
 
   # Given pixel space in the world, convert to tile space and return
   # the rgba

@@ -92,7 +92,6 @@ class @Player
   die: () ->
     if GameConstants.debug
         console.log 'player died'
-    @shost.removePlayer(this)
     @sprite.destroy(true)
     @sprite = null
     @entity.kill()
@@ -104,7 +103,11 @@ class @Player
     @healthsprite.destroy(true)
     @healthsprite = null
     if @active
-      @endTurn()
+      # if player is active player, endTurn will remove the player from game
+      @endTurn(true)
+    else
+      # otherwise manually remove player from game right now
+      @shost.removePlayer(this)
 
   makeFall: () ->
     @entity.p2body.force[1] = 2000
@@ -159,11 +162,11 @@ class @Player
     @can_fire = true
     @shot_charge = 0
 
-  endTurn: ->
+  endTurn: (died=false)->
     if !@active
       return
     @active = false
-    @shost.tryEndPlayerTurn()
+    @shost.tryEndPlayerTurn(died)
     @can_fire = false
 
   aimUp: (dt) ->
@@ -317,6 +320,7 @@ class @Player
     return @entity.y
 
   update: (world) ->
+
     @entity.update()
 
     @checkWorldCollision(world)

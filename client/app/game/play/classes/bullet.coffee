@@ -81,6 +81,10 @@ class @Bullet
         spawnExplosion = true
         doKillBullet = true
         explosionIgnorePlayer = player
+        # also add a crater centered around bullet
+        tileX = GameMath.clamp(world.xTileForWorld(@entity.x), 0, world.width-1)
+        tileY = GameMath.clamp(world.yTileForWorld(@entity.y), 0, world.height-1)
+        world.createCrater(tileX, tileY, @craterRadiusPx / world.tileSize)
         @shost.gcamera.jolt()
         break
 
