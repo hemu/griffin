@@ -607,6 +607,17 @@ module.exports = function (grunt) {
         }
       }
     },
+    // browserify - create shared modules that both serve and
+    // client can use. looks for any modules defined in shared/
+    // folder. outputs a bundle.js that needs to be required client
+    // side
+    browserify: {
+      js: {
+        src: 'shared_core/*',
+        // Compile to a single file for client side
+        dest: 'client/app/game/play/core/core.js',
+      },
+    },
   });
 
   // Used for delaying livereload until after server has restarted
@@ -648,6 +659,7 @@ module.exports = function (grunt) {
       'env:all',
       'injector:stylus', 
       'concurrent:server',
+      'browserify',
       'injector',
       'wiredep',
       'autoprefixer',
@@ -664,11 +676,14 @@ module.exports = function (grunt) {
   });
 
   grunt.registerTask('test', function(target) {
+    
+    grunt.task.run(['browserify']);
+    
     if (target === 'server') {
       return grunt.task.run([
         'env:all',
         'env:test',
-        'mochaTest'
+        'mochaTest',
       ]);
     }
 
@@ -707,6 +722,7 @@ module.exports = function (grunt) {
 
   grunt.registerTask('build', [
     'clean:dist',
+    'browserify',
     'injector:stylus', 
     'concurrent:dist',
     'injector',
