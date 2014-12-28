@@ -10,7 +10,13 @@ class @PlayState extends Phaser.State
 		# SessionHost is the main class that holds all the
 		# game logic and objects
 		@shost = new SessionHost(@game)
-		@shost.initialize(["1","2","3"],@null)
+		@shost.initialize(
+			[
+				{id: "1", name: "UnluckyAmbassador"},
+				{id: "2", name: "VizualMenace"},
+				{id: "3", name: "Gentlemen Killah"}
+			],
+			@null)
 
 	update: ->
 

@@ -15,8 +15,6 @@ class @SessionHost
     @bullets = []
     @active_player = null
     @turn_time_remaining = 0
-    # XXX move all these to HUD class later
-    @turnText = null
 
     # Add all sprites in play to this group so that the GameUI's group sits
     # on top of all of them
@@ -32,7 +30,7 @@ class @SessionHost
     @endTurnTimer = 0
     @gameOver = false
 
-  initialize: (player_ids) ->
+  initialize: (player_configs) ->
 
     GameInputs.shost = this
     GameInputs.setupInputs()
@@ -67,7 +65,9 @@ class @SessionHost
     @p2world.gravity = [0,0]
 
     num_players = 0
-    for id in player_ids
+    for config in player_configs
+      id = config.id
+      name = config.name
       spawnXY = @world.getSpawnForPlayerNum(num_players)
       if spawnXY == null
         num_players++
@@ -77,6 +77,7 @@ class @SessionHost
       player.initialize(this, id, spawnXY[0], spawnXY[1],
         GameConstants.playerScale, 0)
       player.initHealth(100)
+      player.setName(name)
       @players.push player
 
       # for each player add a delay wait entry
@@ -99,9 +100,6 @@ class @SessionHost
 
     @gcamera = new GameCamera(this)
     @gcamera.initialize(1.0)
-    # XXX Move these to UI class
-    @turnText = new Phaser.Text(@game, 16, 16, 'Turn')
-    @gcamera.addFixedSprite(@turnText)
     @endPlayerTurn()
 
     GameUI.bringToTop()
@@ -185,6 +183,10 @@ class @SessionHost
       @active_player.shot_charge / @active_player.max_shot_charge)
   playerFire: () ->
     @active_player.fire()
+  playerMoveCamera: (x, y) ->
+    @gcamera.playerMoveCamera(x, y)
+  playerReleaseCamera: () ->
+    @gcamera.playerReleaseCamera()
 
   tryEndPlayerTurn: (died=false) ->
     if @active_player == null
@@ -231,7 +233,7 @@ class @SessionHost
     @gcamera.follow(@active_player.sprite)
     @gcamera.easeTo(@active_player.getX() - @game.width/2, @active_player.getY() - @game.height/2)
 
-    @turnText.text = 'Player ' + next_player_id + ' turn'
+    GameUI.updateTurnText('Player ' + next_player_id + ' turn')
     @turn_time_remaining = GameConstants.turnTime
 
   endTurnRefreshUI: ->

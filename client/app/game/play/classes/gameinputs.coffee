@@ -4,6 +4,8 @@ class @GameInputs
 
   @spaceIsDown = false
 
+  @leftDragLast = null
+
   @issuerIsNotActive: () ->
     # XXX in future need to check if the player issuing this command
     # is the active player
@@ -41,39 +43,53 @@ class @GameInputs
       Phaser.Keyboard.RIGHT,
       Phaser.Keyboard.SPACEBAR])
 
-    #@shost.game.input.onDown.add(@leftMouseDown, this)
-    #@shost.game.input.onUp.add(@leftMouseUp, this)
-    #@shost.game.input.addMoveCallback(@leftMouseMove, this)
+    @shost.game.input.onDown.add(@leftMouseDown, this)
+    @shost.game.input.onUp.add(@leftMouseUp, this)
+    @shost.game.input.addMoveCallback(@leftMouseMove, this)
     @shost.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR).onDown.add(
       @spaceKeyDown, this);
     @shost.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR).onUp.add(
       @spaceKeyUp, this)
 
-  """
-  leftMouseDown: () ->
-    console.log 'clicked left mouse'
-    if @active_player == null || !@active_player.can_fire
-      return
+  @leftMouseDown: () ->
+    if GameConstants.debug
+      console.log 'clicked left mouse'
+    # Anyone can move the camera, doesn't need to be active player, so don't
+    # add issuerIsNotActive check here.
     # Note we're using screenspace x,y instead of world space
-    @leftDragStart = [@game.input.activePointer.x, @game.input.activePointer.y]
+    @leftDragLast = [
+      @shost.game.input.activePointer.x, 
+      @shost.game.input.activePointer.y]
 
-  leftMouseMove: () ->
-    if @leftDragStart == null || @active_player == null || !@active_player.can_fire
+  @leftMouseMove: () ->
+    if @leftDragLast == null
       return
-    moveX = @game.input.activePointer.x
-    dX = moveX - @leftDragStart[0]
-    console.log dX
+    moveX = @shost.game.input.activePointer.x
+    moveY = @shost.game.input.activePointer.y
+    dX = moveX - @leftDragLast[0]
+    dY = moveY - @leftDragLast[1]
+    @shost.playerMoveCamera(dX, dY)
+    @leftDragLast = [moveX, moveY]
 
-  leftMouseUp: () ->
-    console.log 'released left mouse'
-    if @active_player == null || !@active_player.can_fire
-      return
-    console.log @active_player
-    upX = @game.input.activePointer.x
-    dX = upX - @leftDragStart[0]
-    console.log dX
-    @leftDragStart = null
-    """
+  @leftMouseUp: () ->
+    if GameConstants.debug
+      console.log 'released left mouse'
+    #upX = @shost.game.input.activePointer.x
+    #upY = @shost.game.input.activePointer.y
+    #dX = upX - @leftDragStart[0]
+    #dY = upY - @leftDragStart[1]
+    @leftDragLast = null
+    @shost.playerReleaseCamera()
+
+  @testHealthPopups: () ->
+    amt = Math.random() * 30 + 30
+    amt = Math.floor(amt)
+    ExplosionFactory.createRedHPTextBasic(
+      @shost.game, 
+      @shost.game.input.activePointer.worldX, 
+      @shost.game.input.activePointer.worldY,
+      amt)
+
   @spaceKeyDown: () ->
     if @issuerIsNotActive()
       return

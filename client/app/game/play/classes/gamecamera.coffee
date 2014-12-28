@@ -16,6 +16,9 @@ class @GameCamera
     # from any following action and mark camera state as forcefully
     # detached, so we can later restore if necessary
     @forceDetach = false
+    # When the player is moving the camera, we don't do any of the automatic
+    # moving of the camera until the player releases camera
+    @playerMove = false
 
     # effects
     @joltArray = []    # store positions to jolt camera violently for a bit
@@ -28,6 +31,8 @@ class @GameCamera
                        # as if it's trying to move past world bounds
     @lastXYSameCount = 0
 
+  # XXX Camera zoom is broken in Phaser and with any scale that isn't 1, 
+  # produces weird scaled movement, so zooming is currently disallowed
   setZoom: (amt) ->
     @zoom = amt
     @updateZoom()
@@ -54,7 +59,26 @@ class @GameCamera
     sp.fixedToCamera = true
     @noZoomGroup.add(sp)
 
+  clearEffects: () ->
+    @forceDetach = false
+    @joltArray = []
+    @easing = false
+    @unfollow()
+    @restoreFollowing = null
+
+  playerMoveCamera:(x, y) ->
+    if !@playerMove
+      @playerMove = true
+      @clearEffects()
+    @shost.game.camera.x -= x * GameConstants.cameraDragRate
+    @shost.game.camera.y -= y * GameConstants.cameraDragRate
+
+  playerReleaseCamera:() ->
+    @playerMove = false
+
   easeTo: (x, y) ->
+    if @playerMove
+      return
     @easeX = x
     @easeY = y
     @easing = true
@@ -64,6 +88,8 @@ class @GameCamera
 
   # This is simply a screen space effect so don't need dt in update
   jolt: (x, y) ->
+    if @playerMove
+      return
     @forceDetach = true
     @restoreFollowing = @following
     @unfollow()
@@ -83,9 +109,13 @@ class @GameCamera
         (curY + Math.random()*joltPx - joltPx/2)*joltFactor])
 
   center: (asprite) ->
+    if @playerMove
+      return
     @shost.game.camera.focusOn(asprite)
 
   follow: (asprite) ->
+    if @playerMove
+      return
     #console.log 'following'
     #console.log asprite
     @following = asprite
@@ -94,6 +124,8 @@ class @GameCamera
     @setDeadzone(GameConstants.cameraDeadzoneTiles)
 
   restoreFollow: () ->
+    if @playerMove
+      return
     if @restoreFollowing == null
       return
     #console.log 'restoring'
@@ -124,6 +156,9 @@ class @GameCamera
       @unfollow()
 
   update: (dt) ->
+    if @playerMove
+      return
+
     if !@forceDetach
       return
 

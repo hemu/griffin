@@ -14,6 +14,11 @@ class @PreloaderState extends Phaser.State
 
 	loadAssets: =>
     console.log(@getAssetPath)
+
+    # font
+    @game.load.bitmapFont("bitfont", @getAssetPath("font.png"), @getAssetPath("font.fnt"))
+    @game.load.bitmapFont("rednum", @getAssetPath("rednumbers.png"), @getAssetPath("rednumbers.fnt"))
+
     @game.load.image("logo", @getAssetPath("phaser.png"))
     @game.load.image("player", @getAssetPath("player.png"))
     @game.load.image("reticule", @getAssetPath("reticule.png"))

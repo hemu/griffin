@@ -49,4 +49,6 @@ class @GameConstants
   @cameraDeadzoneTiles = 3
   # For special Jolt camera effect, what's maximum jolt pixels
   @cameraJoltPx = 20
+  # How fast the camera moves when player drags
+  @cameraDragRate = 1.5
   

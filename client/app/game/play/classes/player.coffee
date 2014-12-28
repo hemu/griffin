@@ -4,7 +4,16 @@ class @Player
   #     their own movement
 
   constructor: (@shost) ->
+    # display and ui
     @sprite = null
+    @id = null
+    @nametext = null
+    @nameoffX = 0
+    @nameOffY = 0
+
+    # gameplay and stats
+    @active = false
+    @entity = null
     @maxhealth = 100
     @curhealth = 100
     @healthsprite = null
@@ -14,8 +23,6 @@ class @Player
     @max_movement = 200
     @cur_movement = 0
     @facingLeft = true
-    @id = null
-    @active = false
 
     # firing and charging shot
     @reticule = null
@@ -24,8 +31,6 @@ class @Player
     @shot_charge = 0
     @max_shot_charge = 1500
     @last_charge = 0        # used to show last shot strength indicator
-
-    @entity = null
     
   initialize: (@shost, @id, x, y, @scale=1, rot=0) ->
     @sprite = new PlayerSprite(@shost.game, x, y, 'player')
@@ -56,6 +61,12 @@ class @Player
     if GameConstants.debug
       @entity.initPreviz(@shost.game)
 
+  setName: (name) ->
+    @nametext = new Phaser.BitmapText(@shost.game, 0, 0, 'bitfont', name, 14)
+    @nameoffX = -@nametext.width / 2
+    @nameoffY = -@sprite.width/@sprite.scale.y + 0.04 * @shost.game.height
+    @shost.playgroup.addChild(@nametext)
+
   initHealth: (maxhealth) ->
     hscalex = maxhealth/GameConstants.healthBase
     @maxhealth = maxhealth
@@ -82,9 +93,20 @@ class @Player
     @sprite.addChild(@healthsprite)
 
   addHealth: (health) ->
+
+    health = Math.ceil(health)
+    if health == 0
+      return
+
     @curhealth += health
     @curhealth = GameMath.clamp(@curhealth, 0, @maxhealth)
     @healthsprite.scale.x = @curhealth / GameConstants.healthBase
+
+    ExplosionFactory.createRedHPTextBasic(
+      @shost.game, 
+      @getX(), 
+      @getY() - @sprite.height/2/@sprite.scale.y,
+      health)
 
     if @curhealth <= 0
       @die()
@@ -94,6 +116,7 @@ class @Player
         console.log 'player died'
     @sprite.destroy(true)
     @sprite = null
+    @nametext = null
     @entity.kill()
     @entity = null
     @reticule.kill()
@@ -154,6 +177,7 @@ class @Player
       @healthsprite.anchor.x = 1
       @healthsprite.x = @healthbarsprite.width/2
     @reticule.changeDirection(faceLeft)
+    @reticule.update(@sprite.x, @sprite.y)
 
   initTurn: ->
     if !@active
@@ -172,10 +196,12 @@ class @Player
   aimUp: (dt) ->
     aimChange = @aimspeed * dt
     @reticule.addAimAngle(aimChange)
+    @reticule.update(@sprite.x, @sprite.y)
 
   aimDown: (dt) ->
     aimChange = @aimspeed * dt
     @reticule.addAimAngle(-aimChange)
+    @reticule.update(@sprite.x, @sprite.y)
 
   chargeShot: (dt) ->
     @last_charge = @shot_charge
@@ -304,6 +330,9 @@ class @Player
     # XXX implement this:
     #@cur_movement += actual_walked_dist
     @setX(@getX() + actual_dist * dirSign)
+    @reticule.update(@sprite.x, @sprite.y)
+    @nametext.x = @sprite.x + @nameoffX
+    @nametext.y = @sprite.y + @nameoffY
 
   setX: (newX) ->
     @entity.setX(newX)
@@ -321,7 +350,7 @@ class @Player
 
   update: (world) ->
 
-    @entity.update()
+    moved = @entity.update()
 
     @checkWorldCollision(world)
 
@@ -333,7 +362,10 @@ class @Player
       @die()
       return
 
-    @reticule.update(@sprite.x, @sprite.y)
+    if moved
+      @reticule.update(@sprite.x, @sprite.y)
+      @nametext.x = @sprite.x + @nameoffX
+      @nametext.y = @sprite.y + @nameoffY
 
   hideUI: () ->
     @reticule.sprite.visible = false

@@ -118,5 +118,25 @@ class @ExplosionFactory
     # explode, lifespan (ms), frequency, quantity, forceQuantity
     pebbleEmitter.start(true, pebbleLifetimeMs, null, numPebble)
 
+  @createRedHPTextBasic: (game, x, y, num) ->
+    hp_text = game.add.bitmapText(
+      0, 
+      0, 'rednum', num.toString(), 32)
+    hp_image = game.add.sprite(x, y, null)
+    hp_image.addChild(hp_text)
+    tween = game.add.tween(hp_image)
+    xW = 0.12 * game.width
+    yH = 0.12 * game.height
+    xrand = Math.random() * xW - xW/2
+    yrand = Math.random() * -yH*0.7 - yH*0.3
+    tween.to({x: x+xrand, y: y+yrand}, 1200)
+    tween.easing(Phaser.Easing.Cubic.Out)
+    tween.start()
+    game.time.events.add(1200, hp_image.destroy, hp_image)
+    game.time.events.add(1200, hp_text.destroy, hp_text)
 
-    
+  
+
+
+
+

@@ -10,7 +10,7 @@ class @Bullet
     # These are in pixels, so for collisions against world need to convert
     # to tiles by dividing by world.tileSize
     @collisionRadiusPx = 20
-    @craterRadiusPx = 40
+    @craterRadiusPx = 50
     # Damage and explosion damage.  If a direct hit is achieved, the hit player
     # gets directHitDamage applied, but is ignored in the explosion damage.
     # All others hit by indirect explosionRadius will incur linearly decreasing
@@ -19,7 +19,7 @@ class @Bullet
     # note that explosion radius is based on center of bullet to center of
     # player, so need to add at least player sprite width/2 to account for
     # that extra distance
-    @explosionRadius = 60
+    @explosionRadius = 70
     @explosionMaxDamage = 30
     @explosionMinDamage = 10
 
@@ -67,8 +67,8 @@ class @Bullet
 
     doKillBullet = false
     spawnExplosion = false
-    hitGround = false
     explosionIgnorePlayer = null
+    damage = 0
 
     # ========================================
     # Player collisions
@@ -77,6 +77,7 @@ class @Bullet
         # if hit firer and not yet past self damage distance traveled, continue
         if player == @player && !@canHitFirer
           continue
+        @drawExplosion(@entity.x, @entity.y, false)
         player.addHealth(-@directHitDamage)
         spawnExplosion = true
         doKillBullet = true
@@ -93,13 +94,13 @@ class @Bullet
     if !doKillBullet && @entity.collidesWithWorld(world)
       # create a crater in world from the center of the bullet
       if GameConstants.debug
-        console.log 'BOOM'
+        console.log 'Hit Ground'
+      @drawExplosion(@entity.x, @entity.y, true)
       tileX = GameMath.clamp(world.xTileForWorld(@entity.x), 0, world.width-1)
       tileY = GameMath.clamp(world.yTileForWorld(@entity.y), 0, world.height-1)
       world.createCrater(tileX, tileY, @craterRadiusPx / world.tileSize)
       doKillBullet = true
       spawnExplosion = true
-      hitGround = true
       @shost.gcamera.jolt()
 
     # ========================================
@@ -108,7 +109,6 @@ class @Bullet
     if spawnExplosion
       spawnPos = [@entity.x, @entity.y]
       explosionRadiusSq = @explosionRadius * @explosionRadius
-      @drawExplosion(@entity.x, @entity.y, hitGround)
       for player in @shost.players
         if player==explosionIgnorePlayer
           continue

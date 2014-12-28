@@ -29,10 +29,14 @@ class @Reticule
     @aimY = -@aimDist * Math.sin(@aimAngle)
 
   setMaxAim: (@maxAim) ->
-    null
+    if @aimAngle > @maxAim
+      @aimAngle = @maxAim
+      @aim_dirty = true
 
   setMinAim: (@minAim) ->
-    null
+    if @aimAngle < @minAim
+      @aimAngle = @minAim
+      @aim_dirty = true
 
   getOrigin: () ->
     return [@oX, @oY]

@@ -53,7 +53,9 @@ class @WorldCreator
         # If the point is a spawn point, store it
         if rgba == @spawnColor
           world.addSpawnPoint(x, y)
-        world.data[x][y] = world.futureData[x][y] = rgba
+          world.data[x][y] = world.futureData[x][y] = 'rgba(0,0,0,0)'
+        else
+          world.data[x][y] = world.futureData[x][y] = rgba
     world.render(true)
     return world
 

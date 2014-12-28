@@ -70,6 +70,8 @@ class @Entity
     return @y
 
   update: ->
+    oldx = @x
+    oldy = @y
     @x = @p2body.position[0]
     @y = @p2body.position[1]
 
@@ -79,6 +81,8 @@ class @Entity
     if @previz != null
       @previz.x = @x + @offX - @width/2
       @previz.y = @y + @offY - @height/2
+
+    return oldx !=@x || oldy != @y
 
   kill: ->
     if @previz

@@ -16,6 +16,7 @@ class @GameUI
   @move_max_width = null
   @shot_save = null
   # turn timer
+  @turn_text = null
   @turn_time_text = null
   
   # Creates and returns a sprite which will be added to the @ui_group
@@ -119,9 +120,24 @@ class @GameUI
       0.5, 0,
       0.0, -0.015)
 
-    @turn_time_text = new Phaser.Text(@shost.game, 0, 0, '')
+    ScreenFractionW = 0.02
+    @turn_text = new Phaser.BitmapText(@shost.game, 
+      0, 
+      0, 'bitfont', 'Player Turn', 20)
+    @turn_text.fixedToCamera = true
+    @turn_text.cameraOffset.set(
+      screenFractionW * screenW,
+      screenFractionW * screenH)
+    @ui_group.add(@turn_text)
+
+    @turn_time_text = new Phaser.BitmapText(@shost.game,
+      0,
+      0,
+      'rednum', '', 72)
     @turn_time_text.fixedToCamera = true
-    @turn_time_text.cameraOffset.set(16, 40)
+    @turn_time_text.cameraOffset.set(
+      screenFractionW * screenW, 
+      screenFractionW * 4 * screenH)
     @ui_group.add(@turn_time_text)
 
   @bringToTop: () ->
@@ -142,20 +158,17 @@ class @GameUI
   @refreshShotSave: (fraction) ->
     @shot_save.cameraOffset.x = @shot_bar.cameraOffset.x + @shot_max_width * @shot_bar.scale.x * fraction
 
+  @updateTurnText: (text) ->
+    @turn_text.setText(text)
+
   @updateTurnTime: (tremaining) ->
     # if turn time is not below show time, hide the time display
     if tremaining > GameConstants.turnShowTime
       @turn_time_text.visible = false
-    # if turn time is in show time, show the time
-    else if tremaining > GameConstants.turnWarnTime
-      @turn_time_text.visible = true
-      @turn_time_text.setText(tremaining.toString())
-      @turn_time_text.setStyle({fill: '#333333'})
     # if turn time is in warn time, show time in red
     else if tremaining > 0
       @turn_time_text.visible = true
       @turn_time_text.setText(tremaining.toString())
-      @turn_time_text.setStyle({fill: '#ff0044'})
     # if turn time is negative or 0, hide it
     else
       @turn_time_text.visible = false
