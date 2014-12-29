@@ -10,7 +10,7 @@ class @GameConstants
   @turnWarnTime = 5
 
   # The base health for which healthbar scale.x = 1
-  @healthBase = 70
+  @healthBase = 100
 
   @playerScale = 0.7
 
@@ -34,8 +34,8 @@ class @GameConstants
   # to their death
   #@gameYBound = 2000
 
-  # travel distance (squared) before bullet can collide with self
-  @bulletSelfHitDist = 20
+  # travel distance before bullet can collide with self
+  @bulletSelfHitDist = 30
 
   # ============================================================================
   # CAMERA

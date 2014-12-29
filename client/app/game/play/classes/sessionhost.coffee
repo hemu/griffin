@@ -76,7 +76,7 @@ class @SessionHost
       player = new Player(this)
       player.initialize(this, id, spawnXY[0], spawnXY[1],
         GameConstants.playerScale, 0)
-      player.initHealth(100)
+      player.initHealth(200)
       player.setName(name)
       @players.push player
 
@@ -116,7 +116,7 @@ class @SessionHost
       return
 
     for player in @players
-      player.update(@world)
+      player.update(dt, @world)
 
     for bullet in @bullets
       if bullet != null
@@ -135,14 +135,9 @@ class @SessionHost
         # If time ran out but there is a bullet still alive, let the bullet
         # end the player's turn upon its death
         if @active_player != null
-          playerBulletAlive = false
-          for bullet in @bullets
-            if bullet.player == @active_player
-              playerBulletAlive = true
-              break
-          if !playerBulletAlive
+          if !@active_player.hasAliveBullets()
             @active_player.endTurn()
-      
+
     if @endingTurn
       @endTurnTimer -= dt
       # XXX In future, need to also check if all players and bullets have 
@@ -187,6 +182,14 @@ class @SessionHost
     @gcamera.playerMoveCamera(x, y)
   playerReleaseCamera: () ->
     @gcamera.playerReleaseCamera()
+  playerSetWeapon: (num) ->
+    # XXX Currently implementation won't work for multiplayer.  Need to 
+    # associate Player objects with sessionid of human players, then set the
+    # Player with corresponding human sessionid's weapon.
+    # For now just set active player while it's "single player"
+    if @active_player == null
+      return
+    @active_player.setWeapon(num)
 
   tryEndPlayerTurn: (died=false) ->
     if @active_player == null
@@ -242,6 +245,7 @@ class @SessionHost
     GameUI.updateShotBar(0)
     GameUI.refreshShotSave(@active_player.last_charge / @active_player.max_shot_charge)
     GameInputs.spaceIsDown = false
+    GameUI.refreshWeaponUI(@active_player.wep_num)
 
   removePlayer: (removePlayer) ->
     if @active_player == removePlayer

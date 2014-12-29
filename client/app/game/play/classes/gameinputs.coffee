@@ -37,11 +37,12 @@ class @GameInputs
   @setupInputs: () ->
     # Disable certain keys from propagating to browser
     @shost.game.input.keyboard.addKeyCapture([
-      Phaser.Keyboard.UP,
+    #  Phaser.Keyboard.UP,
       Phaser.Keyboard.DOWN,
       Phaser.Keyboard.LEFT,
       Phaser.Keyboard.RIGHT,
-      Phaser.Keyboard.SPACEBAR])
+      Phaser.Keyboard.SPACEBAR
+      ])
 
     @shost.game.input.onDown.add(@leftMouseDown, this)
     @shost.game.input.onUp.add(@leftMouseUp, this)

@@ -14,8 +14,8 @@ class @Player
     # gameplay and stats
     @active = false
     @entity = null
-    @maxhealth = 100
-    @curhealth = 100
+    @maxhealth = 200
+    @curhealth = 200
     @healthsprite = null
     @healthbarsprite = null
     @aimspeed = 70
@@ -25,12 +25,19 @@ class @Player
     @facingLeft = true
 
     # firing and charging shot
+    @wep_num = 0
     @reticule = null
     @can_fire = false
     @shot_charge_rate = 500
     @shot_charge = 0
     @max_shot_charge = 1500
     @last_charge = 0        # used to show last shot strength indicator
+
+    # Specifies a dictionary of delay times and bullets to create with their
+    # stats to pass to BulletFactory
+    @bulletQueue = []
+    # keeps track of how many bullets fired by this player are still alive
+    @liveBulletsThisRound = 0
     
   initialize: (@shost, @id, x, y, @scale=1, rot=0) ->
     @sprite = new PlayerSprite(@shost.game, x, y, 'player')
@@ -67,6 +74,9 @@ class @Player
     @nameoffY = -@sprite.width/@sprite.scale.y + 0.04 * @shost.game.height
     @shost.playgroup.addChild(@nametext)
 
+  # ============================================================================
+  #                             HEALTH AND DEATH
+  # ============================================================================
   initHealth: (maxhealth) ->
     hscalex = maxhealth/GameConstants.healthBase
     @maxhealth = maxhealth
@@ -116,6 +126,7 @@ class @Player
         console.log 'player died'
     @sprite.destroy(true)
     @sprite = null
+    @nametext.destroy(true)
     @nametext = null
     @entity.kill()
     @entity = null
@@ -132,6 +143,147 @@ class @Player
       # otherwise manually remove player from game right now
       @shost.removePlayer(this)
 
+  # ============================================================================
+  #                             WEAPONS AND FIRING
+  # ============================================================================
+  setWeapon: (num) ->
+    @wep_num = num
+
+  aimUp: (dt) ->
+    aimChange = @aimspeed * dt
+    @reticule.addAimAngle(aimChange)
+    @reticule.update(@sprite.x, @sprite.y)
+
+  aimDown: (dt) ->
+    aimChange = @aimspeed * dt
+    @reticule.addAimAngle(-aimChange)
+    @reticule.update(@sprite.x, @sprite.y)
+
+  chargeShot: (dt) ->
+    @last_charge = @shot_charge
+    addCharge = @shot_charge_rate * dt
+    @shot_charge += addCharge
+    @shot_charge = GameMath.clamp(@shot_charge, 1, @max_shot_charge)
+
+  spawnBullet: (spec) ->
+
+    bullet = new Bullet(@shost)
+    rorg = @reticule.getOrigin()
+
+    dirSign = 1
+    angle = @reticule.aimAngle
+    if @facingLeft
+      dirSign = -1
+      angle = 180 - @reticule.aimAngle
+
+    # XXX affected by wind, etc
+    fx = 0
+    fy = 9000 # bullet gravity
+    # since we've zeroed @shot_charge when calling fire(), 
+    # use stored @last_charge instead
+    vel = @last_charge
+    bullet.initialize(
+      this, 
+      @getX() + dirSign *rorg[0], @getY() + rorg[1], 
+      vel, angle, 
+      fx, fy, 
+      spec)
+    
+    @shost.bullets.push(bullet)
+    @shost.gcamera.follow(bullet.sprite)
+
+  updateBullets: (dt) ->
+    if @bulletQueue.length <= 0
+      return
+    newQueue = []
+    for bulletSpec in @bulletQueue
+      newSpec = {}
+      delay = bulletSpec.delay
+      if delay <= 0
+        @spawnBullet(bulletSpec.bullet)
+      else
+        newSpec.delay = delay - dt
+        newSpec.bullet = bulletSpec.bullet
+        newQueue.push(newSpec)
+    @bulletQueue = newQueue
+
+  update: (dt, world) ->
+
+    moved = @entity.update()
+
+    @checkWorldCollision(world)
+
+    # update the sprite to the ground truth simulated position
+    @sprite.x = @entity.x
+    @sprite.y = @entity.y
+
+    if @getY() > @shost.world.gameYBound
+      @die()
+      return
+
+    if moved
+      @reticule.update(@sprite.x, @sprite.y)
+      @nametext.x = @sprite.x + @nameoffX
+      @nametext.y = @sprite.y + @nameoffY
+
+    @updateBullets(dt)
+
+  fire: () ->
+    if !@can_fire
+      return
+    #console.log 'FIRE AWAY!'
+
+    # bulletSpecs looks like this:
+    # { delay: 1000 (ms),
+    #   bullet: {img: 'imagename'}
+    # }
+    # Note that we want bullet specs returned, not actual bullets, so that
+    # they can be fired with delay
+    @bulletQueue = BulletSpecFactory.getBulletSpec(@wep_num)
+    # do this accounting at the start of firing, rather than waiting for
+    # bulletSpawn, or might prematurely end if e.g., the first bullet explodes
+    # too soon
+    @liveBulletsThisRound = @bulletQueue.length
+    # It is up to update() to update the bulletQueue and spawn bullets
+
+    @can_fire = false
+    @last_charge = @shot_charge
+    @shot_charge = 0
+
+  """
+  fire: () ->
+    if !@can_fire
+      return
+    #console.log 'FIRE AWAY!'
+
+    bullet = new Bullet(@shost)
+    rorg = @reticule.getOrigin()
+
+    dirSign = 1
+    angle = @reticule.aimAngle
+    if @facingLeft
+      dirSign = -1
+      angle = 180 - @reticule.aimAngle
+
+    # XXX affected by wind, etc
+    fx = 0
+    fy = 9000 # bullet gravity
+    bullet.collisionRadiusPx = 20
+    bullet.explosionRadiusPx = 60
+    vel = @shot_charge
+    bullet.initialize(this, @getX() + dirSign *rorg[0], @getY() + rorg[1], vel, angle, fx, fy, 0.4, 0)
+    
+    @shost.bullets.push(bullet)
+    @shost.gcamera.follow(bullet.sprite)
+
+    @can_fire = false
+    @last_charge = @shot_charge
+    @shot_charge = 0
+  """
+
+  # ============================================================================
+  #                           MOVEMENT AND FALLING
+  # ============================================================================
   makeFall: () ->
     @entity.p2body.force[1] = 2000
 
@@ -182,9 +334,30 @@ class @Player
   initTurn: ->
     if !@active
       return
+    console.log @getX()
+    console.log @getY()
     @cur_movement = 0
     @can_fire = true
     @shot_charge = 0
+
+  hasAliveBullets: () ->
+    if @liveBulletsThisRound > 0
+      return true
+    return false
+    """
+    for bullet in @shost.bullets
+      if bullet.player == this
+        return true
+    return false
+    """
+
+  # When a bullet dies, it will try to end the player's turn.  If the bullet is
+  # the last bullet left belonging to the player, then it should end turn,
+  # otherwise it shouldn't
+  tryBulletEndTurn: () ->
+    @liveBulletsThisRound -= 1
+    if !@hasAliveBullets()
+      @endTurn()
 
   endTurn: (died=false)->
     if !@active
@@ -192,51 +365,6 @@ class @Player
     @active = false
     @shost.tryEndPlayerTurn(died)
     @can_fire = false
-
-  aimUp: (dt) ->
-    aimChange = @aimspeed * dt
-    @reticule.addAimAngle(aimChange)
-    @reticule.update(@sprite.x, @sprite.y)
-
-  aimDown: (dt) ->
-    aimChange = @aimspeed * dt
-    @reticule.addAimAngle(-aimChange)
-    @reticule.update(@sprite.x, @sprite.y)
-
-  chargeShot: (dt) ->
-    @last_charge = @shot_charge
-    addCharge = @shot_charge_rate * dt
-    @shot_charge += addCharge
-    @shot_charge = GameMath.clamp(@shot_charge, 1, @max_shot_charge)
-
-  fire: () ->
-    if !@can_fire
-      return
-    #console.log 'FIRE AWAY!'
-
-    bullet = new Bullet(@shost)
-    rorg = @reticule.getOrigin()
-
-    dirSign = 1
-    angle = @reticule.aimAngle
-    if @facingLeft
-      dirSign = -1
-      angle = 180 - @reticule.aimAngle
-
-    # XXX affected by wind, etc
-    fx = 0
-    fy = 9000 # bullet gravity
-    bullet.collisionRadiusPx = 20
-    bullet.explosionRadiusPx = 60
-    vel = @shot_charge
-    bullet.initialize(this, @getX() + dirSign *rorg[0], @getY() + rorg[1], vel, angle, fx, fy, 0.4, 0)
-    
-    @shost.bullets.push(bullet)
-    @shost.gcamera.follow(bullet.sprite)
-
-    @can_fire = false
-    @last_charge = @shot_charge
-    @shot_charge = 0
 
   moveLeft: (dt, world) ->
     if !@can_fire
@@ -347,25 +475,6 @@ class @Player
 
   getY: ->
     return @entity.y
-
-  update: (world) ->
-
-    moved = @entity.update()
-
-    @checkWorldCollision(world)
-
-    # update the sprite to the ground truth simulated position
-    @sprite.x = @entity.x
-    @sprite.y = @entity.y
-
-    if @getY() > @shost.world.gameYBound
-      @die()
-      return
-
-    if moved
-      @reticule.update(@sprite.x, @sprite.y)
-      @nametext.x = @sprite.x + @nameoffX
-      @nametext.y = @sprite.y + @nameoffY
 
   hideUI: () ->
     @reticule.sprite.visible = false

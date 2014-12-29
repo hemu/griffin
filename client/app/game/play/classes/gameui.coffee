@@ -15,6 +15,12 @@ class @GameUI
   @shot_max_width = null
   @move_max_width = null
   @shot_save = null
+  # weapon buttons
+  @buttons_wep = []
+  @button_wep1 = null
+  @button_wep2 = null
+  @button_wep3 = null
+  @sprites_wep = []
   # turn timer
   @turn_text = null
   @turn_time_text = null
@@ -49,6 +55,42 @@ class @GameUI
     @ui_group.add(sprite)
     return sprite
 
+  @setupButton: (imgsheet, screenFractionW, posX, posY,
+    ancX, ancY,
+    screenFractionPadX, screenFractionPadY,
+    callback) ->
+
+    screenW = @shost.game.width
+    screenH = @shost.game.height
+
+    button = new Phaser.Button(
+      @shost.game,
+      0, 0, imgsheet, callback, this, 1, 0, 2)
+    button.fixedToCamera = true
+    button.anchor =
+      x: ancX
+      y: ancY
+    desiredW = screenW * screenFractionW 
+    scaleFactor = desiredW / button.width
+    button.scale.set( scaleFactor, scaleFactor )
+    button.cameraOffset.set(
+      posX + screenFractionPadX * screenW, 
+      posY + screenFractionPadY * screenH)
+    button.on = false
+    @ui_group.add(button)
+    return button
+
+  @buttonCallback: (btn) ->
+    console.log 'callback'
+    console.log btn
+    btn.on = !btn.on
+    if btn.on
+      btn.setFrames(1, 2, 2)
+    else
+      btn.setFrames( 1, 0, 2)
+    #btn.setFrames(1, (btn.on)?2:0, (btn.on)?0:2)
+    #btn.frame = (btn.on)?2:0
+
   @initialize: (@shost) ->
 
     @ui_group = @shost.game.add.group()
@@ -57,35 +99,52 @@ class @GameUI
     screenW = @shost.game.width
     screenH = @shost.game.height
 
-    screenFractionW = 0.5
+    # player action bar
+    @setupActionBar()
+
+    # buttons
+    @setupWeaponButtons()
+
+    # turn UI
+    @setupTurnUI()
+
+  # ============================================================================
+  #                           PLAYER ACTION BAR
+  # ============================================================================
+  @setupActionBar: () ->
+
+    screenW = @shost.game.width
+    screenH = @shost.game.height
+
+    screenFractionW = 0.45
     @action_sprite = @setupSprite('actionui', screenFractionW, 
       screenW/2, screenH,
       0.5, 1,
-      0, -0.02)
-    screenFractionW = 0.03
+      0, 0)
+    screenFractionW = 0.025
     @icon_move_sprite = @setupSprite('icon_move', screenFractionW, 
       screenW/2 - @action_sprite.width/2, 
       @action_sprite.cameraOffset.y - @action_sprite.height,
       0.5, 0.5,
-      0.03, 0.03
+      0.025, 0.025
       )
     @icon_shot_sprite = @setupSprite('icon_shot', screenFractionW,
       screenW/2 - @action_sprite.width/2,
       @action_sprite.cameraOffset.y - @action_sprite.height/2,
       0.5, 0.5,
-      0.03, 0.02)
-    screenFractionW = 0.4
+      0.025, 0.02)
+    screenFractionW = 0.38
     @move_bg_bar = @setupSprite('bluebar', screenFractionW,
       screenW * (0.5 - screenFractionW/2), 
       screenH - @action_sprite.height,
       0.0, 0,
-      0.01, -0.02 + 0.02)
+      0.01, 0.02)
     @move_bg_bar.alpha = 0.3
     @move_bar = @setupSprite('bluebar', screenFractionW,
       screenW * (0.5 - screenFractionW/2), 
       screenH - @action_sprite.height,
       0.0, 0,
-      0.01, -0.02 + 0.02)
+      0.01, 0.02)
     @move_max_width = @move_bar.width / @move_bar.scale.x
     @crop_move = new Phaser.Rectangle(0, 0, 
       @move_max_width, 
@@ -120,7 +179,96 @@ class @GameUI
       0.5, 0,
       0.0, -0.015)
 
-    ScreenFractionW = 0.02
+  # ============================================================================
+  #                              WEAPON BUTTONS
+  # ============================================================================
+  @pickWeaponCallback: (btn) ->
+    btn.on = true
+    btn.setFrames(2, 2, 2)
+    @sprites_wep[btn.id].alpha = 1
+    btn.alpha = 1
+    for otherbtn in @buttons_wep
+      if otherbtn == btn
+        continue
+      otherbtn.on = false
+      otherbtn.setFrames(1, 0, 2)
+      @sprites_wep[otherbtn.id].alpha = 0.5
+      otherbtn.alpha = 0.75
+
+    # XXX need to send @shost.sessionid to associate with correct Player
+    @shost.playerSetWeapon(btn.id)
+
+  # XXX Only need this while single player, need to revert UI to match the
+  # @active_player's weapon selection
+  @refreshWeaponUI: (wep_num) ->
+    @pickWeaponCallback(@buttons_wep[wep_num])
+
+  @setupWeaponButtons: () ->
+
+    screenW = @shost.game.width
+    screenH = @shost.game.height
+
+    screenFractionW = 0.07
+    @button_wep1 = @setupButton(
+      'buttonchoose', screenFractionW, 
+      0, screenH,
+      0, 1,
+      0.01, -0.01,
+      @pickWeaponCallback)
+    @button_wep1.id = 0
+    @buttons_wep.push(@button_wep1)
+
+    sprite_wep1 = @setupSprite(
+      'bullet', screenFractionW * 0.8,
+      0, screenH,
+      0, 1,
+      0.01 + screenFractionW*0.1, 
+      -0.01 - screenFractionW * 0.1)
+
+    @sprites_wep.push(sprite_wep1)
+
+    # activate weapon 1
+    @pickWeaponCallback(@button_wep1)
+
+    @button_wep2 = @setupButton(
+      'buttonchoose', screenFractionW, 
+      screenFractionW * screenW, screenH,
+      0, 1,
+      0.015, -0.01,
+      @pickWeaponCallback)
+    @button_wep2.id = 1
+    @buttons_wep.push(@button_wep2)
+
+    sprite_wep2 = @setupSprite(
+      'missile1', screenFractionW * 0.8,
+      screenFractionW * screenW, screenH,
+      0, 1,
+      0.015 + screenFractionW*0.1, 
+      -0.01 - screenFractionW*0.1)
+
+    @sprites_wep.push(sprite_wep2)
+
+    # XXX haven't implemented this guy yet
+    """
+    @button_wep3 = @setupButton(
+      'buttonchoose', screenFractionW, 
+      screenFractionW*2 * screenW, screenH,
+      0, 1,
+      0.02, -0.01,
+      @pickWeaponCallback)
+    @button_wep3.id = 2
+    @buttons_wep.push(@button_wep3)
+    """
+
+  # ============================================================================
+  #                                TURN UI
+  # ============================================================================
+  @setupTurnUI: () ->
+
+    screenW = @shost.game.width
+    screenH = @shost.game.height
+
+    screenFractionW = 0.02
     @turn_text = new Phaser.BitmapText(@shost.game, 
       0, 
       0, 'bitfont', 'Player Turn', 20)

@@ -6,6 +6,9 @@ class @Bullet
 
     @sprite = null
 
+    @scale = 1
+    @rot = 0
+
     # World collision detection and crater creation
     # These are in pixels, so for collisions against world need to convert
     # to tiles by dividing by world.tileSize
@@ -22,21 +25,24 @@ class @Bullet
     @explosionRadius = 70
     @explosionMaxDamage = 30
     @explosionMinDamage = 10
+    # how big the drawn explosion sprite is
+    @explosionGfxScale = 1
+
+    @particleStart = null
+    @particleAttach = null
+    # need to manually kill attached emitters when die
+    @attachedEmitters = []
+    @particleEnd = null
 
     @entity = null
 
-    @distance_traveled_sq = 0  # save distance traveled as square to avoid sqrt
+    @distance_traveled = 0
     @canHitFirer = false
 
-  initialize: (@player, x, y, velocity, angle, @fx, @fy, @scale=1, rot=0) ->
-    @sprite = new Phaser.Sprite(@shost.game, x, y, 'bullet')
-    @sprite.angle = rot
-    @sprite.scale.x = @scale
-    @sprite.scale.y = @scale
-    @sprite.anchor =
-      x: 0.5
-      y: 0.5
-    @shost.playgroup.add(@sprite)
+  initialize: (@player, x, y, velocity, angle, @fx, @fy, spec) ->
+
+    @scale = spec.bullet_scale
+    @collisionRadiusPx = spec.collisionRadiusPx
 
     @entity = new Entity(@shost)
     @entity.initialize(x, y, @collisionRadiusPx*2*@scale, @collisionRadiusPx*2*@scale, 0, 0)
@@ -45,8 +51,37 @@ class @Bullet
     @entity.p2body.velocity[1] = -velocity * Math.sin(GameMath.deg2rad(angle))
     @entity.setForce(fx, fy)
 
+    @initFromSpec(spec)
+
     if GameConstants.debug
       @entity.initPreviz(@shost.game)
+
+    if @particleStart != null
+      @particleStart(@shost.game, x, y)
+
+    if @particleAttach != null
+      @attachedEmitters = @particleAttach(@shost.game, x, y)
+
+  initFromSpec: (spec) ->
+
+    @sprite = new Phaser.Sprite(@shost.game, 0, 0, spec.bullet_image)
+    @sprite.anchor =
+      x: 0.5
+      y: 0.5
+    @sprite.scale.x = @scale
+    @sprite.scale.y = @scale
+    @shost.playgroup.add(@sprite)
+
+    @collisionRadiusPx = spec.collisionRadiusPx
+    @craterRadiusPx = spec.craterRadiusPx
+    @directHitDamage = spec.directHitDamage
+    @explosionRadius = spec.explosionRadius
+    @explosionMaxDamage = spec.explosionMaxDamage
+    @explosionMinDamage = spec.explosionMinDamage
+    @explosionGfxScale = spec.explosionGfxScale
+    @particleStart = spec.particleStart
+    @particleAttach = spec.particleAttach
+    @particleEnd = spec.particleEnd
 
   update: (world) ->
 
@@ -55,15 +90,26 @@ class @Bullet
     new_pos = [@entity.x, @entity.y]
     tx = new_pos[0] - old_pos[0]
     ty = new_pos[1] - old_pos[1]
-    @distance_traveled_sq += tx*tx + ty*ty
+    traveled = Math.sqrt(tx*tx + ty*ty)
+    @distance_traveled += traveled
     if !@canHitFirer
-      selfHitDist = GameConstants.bulletSelfHitDist
-      if @distance_traveled_sq > selfHitDist * selfHitDist
+      if @distance_traveled > GameConstants.bulletSelfHitDist
         @canHitFirer = true
 
     # update the sprite to the ground truth simulated position
     @sprite.x = @entity.x
     @sprite.y = @entity.y
+    # Update any attached emitters
+    for emitter in @attachedEmitters
+      emitter.x = @entity.x
+      emitter.y = @entity.y
+
+    # update the rotation of the bullet
+    angle = Math.acos(ty / traveled)
+    dirX = 1
+    if (tx > 0)
+      dirX = -1    
+    @sprite.rotation = dirX*angle + GameMath.PI
 
     doKillBullet = false
     spawnExplosion = false
@@ -134,21 +180,22 @@ class @Bullet
         console.log 'bullet died'
       @shost.removeBullet(this)
       @kill()
-      @player.endTurn()
+      @player.tryBulletEndTurn()
 
   kill: () ->
     @sprite.destroy(true)
     @sprite = null
     @entity.kill()
     @entity = null
+    for emitter in @attachedEmitters
+      if emitter != null
+        emitter.on = false
+        # kill the emitter in 2 seconds, let particles live for a bit
+        @shost.game.time.events.add(2000, emitter.destroy, emitter)
+    @attachedEmitters = null
 
   drawExplosion: (x, y, hitGround) ->
-    ExplosionFactory.createExplosionBasic(@shost.game, x, y)
-    if hitGround
-      ExplosionFactory.createPebbleBasic(@shost.game, x, y)
-    else
-      ExplosionFactory.createFlareBasic(@shost.game, x, y)
-
+    @particleEnd(@shost.game, x, y, hitGround)
 
 
 
