@@ -37,7 +37,11 @@ server.listen(config.port, config.ip, function () {
   console.log('Express server listening on %d, in %s mode', config.port, app.get('env'));
 });
 
-var mathTest = require('../shared_core/math_test.js');
+// need to register coffescript extension to make it easier
+// to directly require() modules written in coffescript
+// require('coffee-script/register');
+// var mathTest = require('../shared_core/math_test');
+// mathTest();
 
 // Expose app
 exports = module.exports = app;
