@@ -1,7 +1,9 @@
-angular.module('griffinApp.game')
+gameFactory = require('./game-factory')
+
+require('./game')
 .directive 'gameCanvasCont', ($injector) ->
   linkFn = (scope, ele, attrs) ->
-    createGame scope, scope.players, scope.mapId, ele, $injector
+    gameFactory.createGame scope, scope.players, scope.mapId, ele, $injector
     
   return {
     scope:

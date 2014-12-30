@@ -1,6 +1,15 @@
 'use strict'
 
-angular.module 'griffinApp.game', []
+require('angular')
+require('angular-cookies')
+require('angular-resource')
+require('angular-sanitize')
+require('angular-route')
+require('angular-socket-io')
+
+# Shared module test
+mathTest = require('shared-core/math-test')
+mathTest()
 
 # Specify all module dependencies for our griffinApp.
 angular.module 'griffinApp', [
@@ -9,8 +18,9 @@ angular.module 'griffinApp', [
   'ngSanitize',
   'ngRoute',
   'btford.socket-io',
-  'ui.bootstrap',
-  'griffinApp.game'
+  # 'ui.bootstrap',
+  # 'griffinApp.game',
+  require('./game/game').name
   # The main client game module which contains all phaser code.
 ]
 .config ($routeProvider, $locationProvider, $httpProvider) ->
@@ -37,8 +47,8 @@ angular.module 'griffinApp', [
 
     $q.reject response
 
-.run ($rootScope, $location, Auth) ->
-  # Redirect to login if route requires auth and you're not logged in
-  $rootScope.$on '$routeChangeStart', (event, next) ->
-    Auth.isLoggedInAsync (loggedIn) ->
-      $location.path "/login" if next.authenticate and not loggedIn
+# .run ($rootScope, $location, Auth) ->
+#   # Redirect to login if route requires auth and you're not logged in
+#   $rootScope.$on '$routeChangeStart', (event, next) ->
+#     Auth.isLoggedInAsync (loggedIn) ->
+#       # $location.path "/login" if next.authenticate and not loggedIn

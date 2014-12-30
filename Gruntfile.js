@@ -423,12 +423,12 @@ module.exports = function (grunt) {
     // Run some tasks in parallel to speed up the build process
     concurrent: {
       server: [
-        'coffee',
+        // 'coffee',
         'jade',
         'stylus',
       ],
       test: [
-        'coffee',
+        // 'coffee',
         'jade',
         'stylus',
       ],
@@ -442,7 +442,7 @@ module.exports = function (grunt) {
         }
       },
       dist: [
-        'coffee',
+        // 'coffee',
         'jade',
         'stylus',
         'imagemin',
@@ -562,10 +562,12 @@ module.exports = function (grunt) {
         },
         files: {
           '<%= yeoman.client %>/index.html': [
-              ['{.tmp,<%= yeoman.client %>}/{app,components}/**/*.js',
-               '!{.tmp,<%= yeoman.client %>}/app/app.js',
-               '!{.tmp,<%= yeoman.client %>}/{app,components}/**/*.spec.js',
-               '!{.tmp,<%= yeoman.client %>}/{app,components}/**/*.mock.js']
+              // ['{.tmp,<%= yeoman.client %>}/{app,components}/**/*.js',
+              //  '!{.tmp,<%= yeoman.client %>}/app/app.js',
+              //  '!{.tmp,<%= yeoman.client %>}/{app,components}/**/*.spec.js',
+              //  '!{.tmp,<%= yeoman.client %>}/{app,components}/**/*.mock.js']
+              ['<%= yeoman.client %>/*.js',
+               '<%= yeoman.client %>/components/**/*.js']
             ]
         }
       },
@@ -624,13 +626,14 @@ module.exports = function (grunt) {
     browserify: {
       dist: {
         files: {
-          'client/client.js': ['shared_core/*.coffee', 'client/app/**/*.coffee']
+          'client/client.js': ['node_modules/shared-core/**/*.coffee', 'client/app/**/*.coffee']
         },
         options: {
           transform: ['coffeeify'],
           browserifyOptions: {
             extensions: ['.coffee']
-          }
+          },
+          watch: true
         }
       }
     }
@@ -675,7 +678,7 @@ module.exports = function (grunt) {
       'env:all',
       'injector:stylus', 
       'concurrent:server',
-      // 'browserify',
+      'browserify',
       'injector',
       'wiredep',
       'autoprefixer',
@@ -693,7 +696,7 @@ module.exports = function (grunt) {
 
   grunt.registerTask('test', function(target) {
     
-    // grunt.task.run(['browserify']);
+    grunt.task.run(['browserify']);
     
     if (target === 'server') {
       return grunt.task.run([
@@ -738,7 +741,7 @@ module.exports = function (grunt) {
 
   grunt.registerTask('build', [
     'clean:dist',
-    // 'browserify',
+    'browserify',
     'injector:stylus', 
     'concurrent:dist',
     'injector',
