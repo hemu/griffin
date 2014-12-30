@@ -1,4 +1,4 @@
-config = require './game-config'
+mConfig = require './game-config'
 
 # worth considering if we will get a win later by separating into 
 # KeyboardInputs and MouseInputs. so same inputs module 
@@ -14,7 +14,7 @@ class GameInput
   @issuerIsNotActive: () ->
     # XXX in future need to check if the player issuing this command
     # is the active player
-    if @shost.active_player == null #|| @shost.active_player.id != @shost.sessionid
+    if @shost.active_player == null #|| @shost.active_player.id != @shost.sessionId
       return true
     if @shost.endingTurn
       return true
@@ -58,7 +58,7 @@ class GameInput
       @spaceKeyUp, this)
 
   @leftMouseDown: () ->
-    if config.GameConstant.debug
+    if mConfig.GameConstant.debug
       console.log 'clicked left mouse'
     # Anyone can move the camera, doesn't need to be active player, so don't
     # add issuerIsNotActive check here.
@@ -78,7 +78,7 @@ class GameInput
     @leftDragLast = [moveX, moveY]
 
   @leftMouseUp: () ->
-    if config.GameConstant.debug
+    if mConfig.GameConstant.debug
       console.log 'released left mouse'
     #upX = @shost.game.input.activePointer.x
     #upY = @shost.game.input.activePointer.y

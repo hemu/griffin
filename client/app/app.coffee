@@ -7,10 +7,6 @@ require('angular-sanitize')
 require('angular-route')
 require('angular-socket-io')
 
-# Shared module test
-mathTest = require('shared-core/math-test')
-mathTest()
-
 # Specify all module dependencies for our griffinApp.
 angular.module 'griffinApp', [
   'ngCookies',

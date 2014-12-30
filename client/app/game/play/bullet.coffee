@@ -1,6 +1,7 @@
-config = require './game-config'
-util = require './game-util'
-effects = require './game-effects'
+mConfig = require './game-config'
+mUtil = require './game-util'
+mEffects = require './game-effects'
+mEntity = require './entity'
 
 class Bullet
 
@@ -48,16 +49,16 @@ class Bullet
     @scale = spec.bullet_scale
     @collisionRadiusPx = spec.collisionRadiusPx
 
-    @entity = new Entity(@shost)
+    @entity = new mEntity.Entity(@shost)
     @entity.initialize(x, y, @collisionRadiusPx*2*@scale, @collisionRadiusPx*2*@scale, 0, 0)
     @shost.p2world.addBody(@entity.p2body)
-    @entity.p2body.velocity[0] = velocity * Math.cos(util.GameMath.deg2rad(angle))
-    @entity.p2body.velocity[1] = -velocity * Math.sin(util.GameMath.deg2rad(angle))
+    @entity.p2body.velocity[0] = velocity * Math.cos(mUtil.GameMath.deg2rad(angle))
+    @entity.p2body.velocity[1] = -velocity * Math.sin(mUtil.GameMath.deg2rad(angle))
     @entity.setForce(fx, fy)
 
     @initFromSpec(spec)
 
-    if config.GameConstant.debug
+    if mConfig.GameConstant.debug
       @entity.initPreviz(@shost.game)
 
     if @particleStart != null
@@ -97,7 +98,7 @@ class Bullet
     traveled = Math.sqrt(tx*tx + ty*ty)
     @distance_traveled += traveled
     if !@canHitFirer
-      if @distance_traveled > config.GameConstant.bulletSelfHitDist
+      if @distance_traveled > mConfig.GameConstant.bulletSelfHitDist
         @canHitFirer = true
 
     # update the sprite to the ground truth simulated position
@@ -113,7 +114,7 @@ class Bullet
     dirX = 1
     if (tx > 0)
       dirX = -1    
-    @sprite.rotation = dirX*angle + util.GameMath.PI
+    @sprite.rotation = dirX*angle + mUtil.GameMath.PI
 
     doKillBullet = false
     spawnExplosion = false
@@ -133,8 +134,8 @@ class Bullet
         doKillBullet = true
         explosionIgnorePlayer = player
         # also add a crater centered around bullet
-        tileX = util.GameMath.clamp(world.xTileForWorld(@entity.x), 0, world.width-1)
-        tileY = util.GameMath.clamp(world.yTileForWorld(@entity.y), 0, world.height-1)
+        tileX = mUtil.GameMath.clamp(world.xTileForWorld(@entity.x), 0, world.width-1)
+        tileY = mUtil.GameMath.clamp(world.yTileForWorld(@entity.y), 0, world.height-1)
         world.createCrater(tileX, tileY, @craterRadiusPx / world.tileSize)
         @shost.gcamera.jolt()
         break
@@ -143,12 +144,12 @@ class Bullet
     # World collisions
     if !doKillBullet && @entity.collidesWithWorld(world)
       # create a crater in world from the center of the bullet
-      if config.GameConstant.debug
+      if mConfig.GameConstant.debug
         console.log 'Hit Ground'
 
       @drawExplosion(@entity.x, @entity.y, true)
-      tileX = util.GameMath.clamp(world.xTileForWorld(@entity.x), 0, world.width-1)
-      tileY = util.GameMath.clamp(world.yTileForWorld(@entity.y), 0, world.height-1)
+      tileX = mUtil.GameMath.clamp(world.xTileForWorld(@entity.x), 0, world.width-1)
+      tileY = mUtil.GameMath.clamp(world.yTileForWorld(@entity.y), 0, world.height-1)
       world.createCrater(tileX, tileY, @craterRadiusPx / world.tileSize)
       doKillBullet = true
       spawnExplosion = true
@@ -181,7 +182,7 @@ class Bullet
         doKillBullet = true
 
     if doKillBullet
-      if config.GameConstant.debug
+      if mConfig.GameConstant.debug
         console.log 'bullet died'
       @shost.removeBullet(this)
       @kill()
@@ -233,15 +234,15 @@ class BulletSpecFactory
     # at the start of bullet's life, and at the end
     # can also attach emitters for smoke trail effects
     particleStart: (game, x, y) -> 
-      em = effects.ExplosionFactory.createGlowBasic(game, x, y, 0.7, 0.3)
-      return em.concat(effects.ExplosionFactory.createSparksBasic(game, x, y, 0.8))
+      em = mEffects.ExplosionFactory.createGlowBasic(game, x, y, 0.7, 0.3)
+      return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.8))
     particleAttach: null,
     particleEnd: (game, x, y, hitground=false) -> 
       if hitground
-        em = effects.ExplosionFactory.createPebbleBasic(game, x, y, 1)
+        em = mEffects.ExplosionFactory.createPebbleBasic(game, x, y, 1)
       else
-        em = effects.ExplosionFactory.createFlareBasic(game, x, y, 1)
-      return em.concat(effects.ExplosionFactory.createExplosionBasic(game, x, y, 1))
+        em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 1)
+      return em.concat(mEffects.ExplosionFactory.createExplosionBasic(game, x, y, 1))
   }
 
   @allSpecs = {
@@ -281,16 +282,16 @@ class BulletSpecFactory
       explosionMaxDamage: 8,   # splash: 32 - 24
       explosionMinDamage: 6,
       particleStart: (game, x, y) -> 
-        em = effects.ExplosionFactory.createGlowBasic(game, x, y, 0.4, 0.1)
-        return em.concat(effects.ExplosionFactory.createSparksBasic(game, x, y, 0.5))
+        em = mEffects.ExplosionFactory.createGlowBasic(game, x, y, 0.4, 0.1)
+        return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.5))
       particleAttach: (game, x, y) ->
-        return effects.ExplosionFactory.createSmokeTrailBasic(game, x, y, 0.6)
+        return mEffects.ExplosionFactory.createSmokeTrailBasic(game, x, y, 0.6)
       particleEnd: (game, x, y, hitground=false) ->
         if hitground
-          em = effects.ExplosionFactory.createPebbleBasic(game, x, y, 0.7)
+          em = mEffects.ExplosionFactory.createPebbleBasic(game, x, y, 0.7)
         else
-          em = effects.ExplosionFactory.createFlareBasic(game, x, y, 0.7)
-        return em.concat(effects.ExplosionFactory.createExplosionBasic(game, x, y, 0.7))
+          em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.7)
+        return em.concat(mEffects.ExplosionFactory.createExplosionBasic(game, x, y, 0.7))
     }
   }
 

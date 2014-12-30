@@ -1,4 +1,4 @@
-util = require './game-util'
+mUtil = require './game-util'
 
 # Entity object
 #
@@ -117,10 +117,10 @@ class Entity
     # spaced by world.tileSize apart, get the world tile value and see if 
     # is ground
 
-    minTileX = util.GameMath.clamp(world.xTileForWorld(@minX()), 0, world.width-1)
-    maxTileX = util.GameMath.clamp(world.xTileForWorld(@maxX()), 0, world.width-1)
-    minTileY = util.GameMath.clamp(world.yTileForWorld(@minY()), 0, world.height-1)
-    maxTileY = util.GameMath.clamp(world.yTileForWorld(@maxY()), 0, world.height-1)
+    minTileX = mUtil.GameMath.clamp(world.xTileForWorld(@minX()), 0, world.width-1)
+    maxTileX = mUtil.GameMath.clamp(world.xTileForWorld(@maxX()), 0, world.width-1)
+    minTileY = mUtil.GameMath.clamp(world.yTileForWorld(@minY()), 0, world.height-1)
+    maxTileY = mUtil.GameMath.clamp(world.yTileForWorld(@maxY()), 0, world.height-1)
     for i in [minTileX...maxTileX]
       for j in [minTileY...maxTileY]
         rgba_str = world.data[i][j]

@@ -1,4 +1,4 @@
-config = require './game-config'
+mConfig = require './game-config'
 
 class GameCamera
 
@@ -72,8 +72,8 @@ class GameCamera
     if !@playerMove
       @playerMove = true
       @clearEffects()
-    @shost.game.camera.x -= x * config.GameConstant.cameraDragRate
-    @shost.game.camera.y -= y * config.GameConstant.cameraDragRate
+    @shost.game.camera.x -= x * mConfig.GameConstant.cameraDragRate
+    @shost.game.camera.y -= y * mConfig.GameConstant.cameraDragRate
 
   playerReleaseCamera:() ->
     @playerMove = false
@@ -100,7 +100,7 @@ class GameCamera
     curY = @shost.game.camera.y
 
     @joltArray = []
-    joltPx = config.GameConstant.cameraJoltPx
+    joltPx = mConfig.GameConstant.cameraJoltPx
     joltFactor = 1.0
     numJolts = 15
     dFactor = joltFactor/numJolts
@@ -123,7 +123,7 @@ class GameCamera
     @following = asprite
     @restoreFollowing = null
     @shost.game.camera.follow(asprite)
-    @setDeadzone(config.GameConstant.cameraDeadzoneTiles)
+    @setDeadzone(mConfig.GameConstant.cameraDeadzoneTiles)
 
   restoreFollow: () ->
     if @playerMove
@@ -191,7 +191,7 @@ class GameCamera
       if curX == @lastXY[0] && curY == @lastXY[1]
         @lastXYSameCount += 1
       if @lastXYSameCount > 10
-        if config.GameConstant.debug
+        if mConfig.GameConstant.debug
           console.log 'easing is stuck, giving up...'
         @easing = false
         @lastXYSameCount = 0

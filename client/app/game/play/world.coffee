@@ -1,8 +1,10 @@
-config = require './game-config'
+mConfig = require './game-config'
 
 class WorldCreator
 
   @spawnColor = 'rgba(255,51,255,1)'  # Corresponds to #ff33ff
+  # hacky way to account for inexplicable pixel data differences on different machines
+  @spawnColorAlt = 'rgba(253,66,252,1)'
 
   @rgbaFormat: (r,g,b,a) ->
     return 'rgba('+r+','+g+','+b+','+a/255.0+')'
@@ -54,7 +56,7 @@ class WorldCreator
         alpha = pixelData[((img.width * y) + x) * 4 + 3]
         rgba = @rgbaFormat(red, green, blue, alpha)
         # If the point is a spawn point, store it
-        if rgba == @spawnColor
+        if rgba == @spawnColor or rgba == @spawnColorAlt
           world.addSpawnPoint(x, y)
           world.data[x][y] = world.futureData[x][y] = 'rgba(0,0,0,0)'
         else
@@ -168,12 +170,12 @@ class World
     @shost.game.world.setBounds(
       0, 
       0, 
-      (playWidthPx + horzPaddingPx*2) * config.GameConstant.cameraScale, 
-      (playHeightPx + topPaddingPx + botPaddingPx) * config.GameConstant.cameraScale)
+      (playWidthPx + horzPaddingPx*2) * mConfig.GameConstant.cameraScale, 
+      (playHeightPx + topPaddingPx + botPaddingPx) * mConfig.GameConstant.cameraScale)
 
     @gameXBoundL = 0 - 40 # add a few more for good measure so things disappear outside camera
-    @gameXBoundR = (playWidthPx + horzPaddingPx*2) * config.GameConstant.cameraScale + 40
-    @gameYBound = (playHeightPx + topPaddingPx + botPaddingPx) * config.GameConstant.cameraScale
+    @gameXBoundR = (playWidthPx + horzPaddingPx*2) * mConfig.GameConstant.cameraScale + 40
+    @gameYBound = (playHeightPx + topPaddingPx + botPaddingPx) * mConfig.GameConstant.cameraScale
     @gameYBound += 160  # add a few more for good measure so things disappear
                         # outside of camera
 

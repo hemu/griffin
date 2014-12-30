@@ -4,6 +4,6 @@ public
 .tmp
 .idea
 client/bower_components
-client/app/game/play/core
+client/client.js
 dist
 /server/config/local.env.js

@@ -40,7 +40,7 @@ module.exports = function (grunt) {
       dev: {
         options: {
           script: 'server/app.js',
-          debug: true
+          // debug: true
         }
       },
       prod: {
@@ -613,16 +613,6 @@ module.exports = function (grunt) {
     // client can use. looks for any modules defined in shared/
     // folder. outputs a bundle.js that needs to be required client
     // side
-    // browserify: {
-    //   js: {
-    //     src: 'shared_core/*',
-    //     // Compile to a single file for client side
-    //     dest: ['client/app/game/play/core/core.js', 'shared/hey.js'],
-    //   },
-    //   options: {
-    //     transform: ['coffeeify']
-    //   }
-    // },
     browserify: {
       dist: {
         files: {
@@ -631,9 +621,10 @@ module.exports = function (grunt) {
         options: {
           transform: ['coffeeify'],
           browserifyOptions: {
-            extensions: ['.coffee']
+            extensions: ['.coffee'],
+            debug: true
           },
-          watch: true
+          watch: true,
         }
       }
     }

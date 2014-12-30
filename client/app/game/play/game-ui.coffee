@@ -1,4 +1,5 @@
-config = require './game-ui'
+mConfig = require './game-config'
+mUtil = require './game-util'
 
 class GameUI
   @shost = null
@@ -197,7 +198,7 @@ class GameUI
       @sprites_wep[otherbtn.id].alpha = 0.5
       otherbtn.alpha = 0.75
 
-    # XXX need to send @shost.sessionid to associate with correct Player
+    # XXX need to send @shost.sessionId to associate with correct Player
     @shost.playerSetWeapon(btn.id)
 
   # XXX Only need this while single player, need to revert UI to match the
@@ -295,13 +296,13 @@ class GameUI
 
   @updateMoveBar: (fraction) ->
     newWidth = @move_max_width * fraction
-    newWidth = GameMath.clamp(newWidth, 1, @move_max_width)
+    newWidth = mUtil.GameMath.clamp(newWidth, 1, @move_max_width)
     @crop_move.width = newWidth
     @move_bar.updateCrop()
 
   @updateShotBar: (fraction) ->
     newWidth = @shot_max_width * fraction
-    newWidth = GameMath.clamp(newWidth, 1, @shot_max_width)
+    newWidth = mUtil.GameMath.clamp(newWidth, 1, @shot_max_width)
     @crop_shot.width = newWidth
     @shot_bar.updateCrop()
 
@@ -313,7 +314,7 @@ class GameUI
 
   @updateTurnTime: (tremaining) ->
     # if turn time is not below show time, hide the time display
-    if tremaining > config.GameConstant.turnShowTime
+    if tremaining > mConfig.GameConstant.turnShowTime
       @turn_time_text.visible = false
     # if turn time is in warn time, show time in red
     else if tremaining > 0

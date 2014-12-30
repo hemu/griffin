@@ -1,9 +1,9 @@
-gameFactory = require('./game-factory')
+mGameFactory = require('./game-factory')
 
 require('./game')
 .directive 'gameCanvasCont', ($injector) ->
   linkFn = (scope, ele, attrs) ->
-    gameFactory.createGame scope, scope.players, scope.mapId, ele, $injector
+    mGameFactory.createGame scope, scope.players, scope.mapId, ele, $injector
     
   return {
     scope:

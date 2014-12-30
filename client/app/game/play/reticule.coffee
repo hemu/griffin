@@ -1,4 +1,4 @@
-util = require './game-util'
+mUtil = require './game-util'
 
 class Reticule
 
@@ -53,14 +53,14 @@ class Reticule
 
   addAimAngle: (angle) ->
     @aimAngle += angle
-    @aimAngle = util.GameMath.clamp(@aimAngle, @minAim, @maxAim)
+    @aimAngle = mUtil.GameMath.clamp(@aimAngle, @minAim, @maxAim)
     @aim_dirty = true
 
   update: (playerX, playerY) ->
     # only update the reticule XY if aim changed so don't incur sin and cos
     if @aim_dirty
-      @aimX = @aimDist * Math.cos(util.GameMath.deg2rad(@aimAngle))
-      @aimY = -@aimDist * Math.sin(util.GameMath.deg2rad(@aimAngle))
+      @aimX = @aimDist * Math.cos(mUtil.GameMath.deg2rad(@aimAngle))
+      @aimY = -@aimDist * Math.sin(mUtil.GameMath.deg2rad(@aimAngle))
 
     dirSign = 1
     if @facingLeft
