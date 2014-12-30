@@ -13,8 +13,6 @@ class PreloaderState extends Phaser.State
     @load.setPreloadSprite(@preloader)
 
   loadAssets: =>
-    console.log(@getAssetPath)
-
     # font
     @game.load.bitmapFont("bitfont", @getAssetPath("font.png"), @getAssetPath("font.fnt"))
     @game.load.bitmapFont("rednum", @getAssetPath("rednumbers.png"), @getAssetPath("rednumbers.fnt"))

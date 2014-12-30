@@ -1,4 +1,4 @@
-states = require('./phaser-state')
+mStates = require('./phaser-state')
 
 createGame = (scope, players, mapId, ele, injector) ->
   # height  = parseInt ele.css('height'), 10
@@ -13,13 +13,11 @@ createGame = (scope, players, mapId, ele, injector) ->
     # }
     game.destroy()
 
-  game.state.add 'Boot', new states.boot.BootState, false
-  game.state.add 'Preloader', new states.preloader.PreloaderState, false
-  game.state.add 'MainMenu', new states.menu.MainMenuState, false
-  game.state.add 'Play', new states.play.PlayState, false
+  game.state.add 'Boot', new mStates.boot.BootState, false
+  game.state.add 'Preloader', new mStates.preloader.PreloaderState, false
+  game.state.add 'MainMenu', new mStates.menu.MainMenuState, false
+  game.state.add 'Play', new mStates.play.PlayState, false
   game.state.start 'Boot', true, false, null
-
-  console.log game
 
 
 module.exports.createGame = createGame

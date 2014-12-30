@@ -1,9 +1,9 @@
-config = require './game-config'
-util = require './game-util'
-entity = require './entity'
-reticule = require './reticule'
-effects = require './game-effects'
-bullet = require './bullet'
+mConfig = require './game-config'
+mUtil = require './game-util'
+mEntity = require './entity'
+mReticule = require './reticule'
+mEffects = require './game-effects'
+mBullet = require './bullet'
 
 class Player
 
@@ -53,16 +53,16 @@ class Player
     @shost.playgroup.add(@sprite)
 
     # Create physics entity
-    @entity = new entity.Entity(@shost)
+    @entity = new mEntity.Entity(@shost)
     # XXX previz is for showing collision logic to ground
-    #previzW = 2*config.GameConstant.playerBaseCollisionTiles * @shost.world.tileSize
-    #previzH = (config.GameConstant.playerSideCollisionStartY) * @shost.world.tileSize
+    #previzW = 2*mConfig.GameConstant.playerBaseCollisionTiles * @shost.world.tileSize
+    #previzH = (mConfig.GameConstant.playerSideCollisionStartY) * @shost.world.tileSize
     #@entity.initialize(x, y, previzW, previzH, 0, -previzH/2)
     @entity.initialize(x,y,70*@scale,100*@scale,0,-50*@scale)
     @shost.p2world.addBody(@entity.p2body)
 
     # Create reticule for aiming
-    @reticule = new reticule.Reticule(this)
+    @reticule = new mReticule.Reticule(this)
     # XXX should resolve these from the mount type's cannon location, which
     # should be a % of the sprite's width and height
     cannonXOff = 50*@scale
@@ -71,7 +71,7 @@ class Player
     @reticule.setMaxAim(70)
     @reticule.setMinAim(10)
 
-    if config.GameConstant.debug
+    if mConfig.GameConstant.debug
       @entity.initPreviz(@shost.game)
 
   setName: (name) ->
@@ -84,7 +84,7 @@ class Player
   #                             HEALTH AND DEATH
   # ============================================================================
   initHealth: (maxhealth) ->
-    hscalex = maxhealth/config.GameConstant.healthBase
+    hscalex = maxhealth/mConfig.GameConstant.healthBase
     @maxhealth = maxhealth
     @curhealth = maxhealth
     @healthbarsprite = new Phaser.Sprite(@shost.game, 0, 0, 'healthbar')
@@ -115,10 +115,10 @@ class Player
       return
 
     @curhealth += health
-    @curhealth = util.GameMath.clamp(@curhealth, 0, @maxhealth)
-    @healthsprite.scale.x = @curhealth / config.GameConstant.healthBase
+    @curhealth = mUtil.GameMath.clamp(@curhealth, 0, @maxhealth)
+    @healthsprite.scale.x = @curhealth / mConfig.GameConstant.healthBase
 
-    effects.ExplosionFactory.createRedHPTextBasic(
+    mEffects.ExplosionFactory.createRedHPTextBasic(
       @shost.game, 
       @getX(), 
       @getY() - @sprite.height/2/@sprite.scale.y,
@@ -134,7 +134,7 @@ class Player
       @die()
 
   die: () ->
-    if config.GameConstant.debug
+    if mConfig.GameConstant.debug
         console.log 'player died'
     @sprite.destroy(true)
     @sprite = null
@@ -175,11 +175,11 @@ class Player
     @last_charge = @shot_charge
     addCharge = @shot_charge_rate * dt
     @shot_charge += addCharge
-    @shot_charge = util.GameMath.clamp(@shot_charge, 1, @max_shot_charge)
+    @shot_charge = mUtil.GameMath.clamp(@shot_charge, 1, @max_shot_charge)
 
   spawnBullet: (spec) ->
 
-    bullet = new bullet.Bullet(@shost)
+    bullet = new mBullet.Bullet(@shost)
     rorg = @reticule.getOrigin()
 
     dirSign = 1
@@ -251,7 +251,7 @@ class Player
     # }
     # Note that we want bullet specs returned, not actual bullets, so that
     # they can be fired with delay
-    @bulletQueue = bullet.BulletSpecFactory.getBulletSpec(@wep_num)
+    @bulletQueue = mBullet.BulletSpecFactory.getBulletSpec(@wep_num)
     # do this accounting at the start of firing, rather than waiting for
     # bulletSpawn, or might prematurely end if e.g., the first bullet explodes
     # too soon
@@ -268,7 +268,7 @@ class Player
       return
     #console.log 'FIRE AWAY!'
 
-    bullet = new bullet.bullet.Bullet(@shost)
+    bullet = new mBullet.Bullet.Bullet(@shost)
     rorg = @reticule.getOrigin()
 
     dirSign = 1
@@ -306,7 +306,7 @@ class Player
     tileY = world.yTileForWorld(@getY())
     highestNonFreeTileY = world.highestNonFreeYTile(tileX, tileY)
     # if height is walkable, clamp it
-    if highestNonFreeTileY > tileY - config.GameConstant.maxWalkableY
+    if highestNonFreeTileY > tileY - mConfig.GameConstant.maxWalkableY
       @entity.p2body.position[1] = world.yWorldForTile(highestNonFreeTileY+1)
     
   checkWorldCollision: (world) ->
@@ -316,7 +316,7 @@ class Player
     # if any are on solid ground, don't make fall and clamp to that one
     shouldFall = true
     checkNeighborTiles = [0]
-    for i in [1 .. config.GameConstant.playerBaseCollisionTiles]
+    for i in [1 .. mConfig.GameConstant.playerBaseCollisionTiles]
       checkNeighborTiles.push(-i)
       checkNeighborTiles.push(i)
     for i in checkNeighborTiles
@@ -433,8 +433,8 @@ class Player
     #      GGGGGGGGGGGGGGGGGGGGG
     tileX = world.xTileForWorld(@getX())
     tileY = world.yTileForWorld(@getY())
-    latTileX = tileX + (config.GameConstant.playerBaseCollisionTiles + 1) * dirSign
-    latTileY = tileY - config.GameConstant.playerSideCollisionStartY
+    latTileX = tileX + (mConfig.GameConstant.playerBaseCollisionTiles + 1) * dirSign
+    latTileY = tileY - mConfig.GameConstant.playerSideCollisionStartY
     tile_rgba = world.getRgbaForTileXY(latTileX, latTileY)
     if world.isGround(tile_rgba)
       return
@@ -461,7 +461,7 @@ class Player
       tileY = world.yTileForWorld(@getY())
       highestNonFreeTileY = world.highestNonFreeYTile(tileX, tileY)
       # if height is walkable
-      if highestNonFreeTileY > tileY - config.GameConstant.maxWalkableY
+      if highestNonFreeTileY > tileY - mConfig.GameConstant.maxWalkableY
         actual_dist = try_dist
       else
         actual_dist = 0
@@ -495,7 +495,7 @@ class Player
     @reticule.sprite.visible = true
 
 
-class @PlayerSprite extends Phaser.Sprite
+class PlayerSprite extends Phaser.Sprite
   
   constructor: ->
     super
