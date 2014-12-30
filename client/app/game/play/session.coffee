@@ -84,10 +84,21 @@ class SessionHost
         continue
       # instantiate player objects and add to @players list
       player = new Player(this)
+<<<<<<< HEAD:client/app/game/play/session.coffee
       player.initialize(this, id, spawnXY[0], spawnXY[1],
         config.GameConstant.playerScale, 0)
       player.initHealth(200)
       player.setName(name)
+||||||| merged common ancestors
+      player.initialize(this, id, 500 + num_players*300, 800,
+        GameConstants.playerScale, 0)
+      player.initHealth(100)
+=======
+      player.initialize(this, id, spawnXY[0], spawnXY[1],
+        GameConstants.playerScale, 0)
+      player.initHealth(200)
+      player.setName(name)
+>>>>>>> origin/master:client/app/game/play/classes/sessionhost.coffee
       @players.push player
 
       # for each player add a delay wait entry
@@ -246,16 +257,35 @@ class SessionHost
     @gcamera.follow(@active_player.sprite)
     @gcamera.easeTo(@active_player.getX() - @game.width/2, @active_player.getY() - @game.height/2)
 
+<<<<<<< HEAD:client/app/game/play/session.coffee
     ui.GameUI.updateTurnText('Player ' + next_player_id + ' turn')
     @turn_time_remaining = config.GameConstant.turnTime
+||||||| merged common ancestors
+    @turnText.text = 'Player ' + next_player_id + ' turn'
+    @turn_time_remaining = GameConstants.turnTime
+=======
+    GameUI.updateTurnText('Player ' + next_player_id + ' turn')
+    @turn_time_remaining = GameConstants.turnTime
+>>>>>>> origin/master:client/app/game/play/classes/sessionhost.coffee
 
   endTurnRefreshUI: ->
     ui.GameUI.updateMoveBar(
       1.0 - @active_player.cur_movement / @active_player.max_movement)
+<<<<<<< HEAD:client/app/game/play/session.coffee
     ui.GameUI.updateShotBar(0)
     ui.GameUI.refreshShotSave(@active_player.last_charge / @active_player.max_shot_charge)
     input.GameInput.spaceIsDown = false
     ui.GameUI.refreshWeaponUI(@active_player.wep_num)
+||||||| merged common ancestors
+    GameUI.updateShotBar(0)
+    GameUI.refreshShotSave(@active_player.last_charge / @active_player.max_shot_charge)
+    GameInputs.spaceIsDown = false
+=======
+    GameUI.updateShotBar(0)
+    GameUI.refreshShotSave(@active_player.last_charge / @active_player.max_shot_charge)
+    GameInputs.spaceIsDown = false
+    GameUI.refreshWeaponUI(@active_player.wep_num)
+>>>>>>> origin/master:client/app/game/play/classes/sessionhost.coffee
 
   removePlayer: (removePlayer) ->
     if @active_player == removePlayer

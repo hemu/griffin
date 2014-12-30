@@ -124,6 +124,12 @@ class Player
       @getY() - @sprite.height/2/@sprite.scale.y,
       health)
 
+    ExplosionFactory.createRedHPTextBasic(
+      @shost.game, 
+      @getX(), 
+      @getY() - @sprite.height/2/@sprite.scale.y,
+      health)
+
     if @curhealth <= 0
       @die()
 

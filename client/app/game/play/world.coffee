@@ -1,3 +1,4 @@
+<<<<<<< HEAD:client/app/game/play/world.coffee
 config = require './game-config'
 
 class WorldCreator

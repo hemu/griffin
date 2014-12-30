@@ -167,4 +167,6 @@ class ExplosionFactory
     game.time.events.add(1200, hp_image.destroy, hp_image)
     game.time.events.add(1200, hp_text.destroy, hp_text)
 
+
 exports.ExplosionFactory = ExplosionFactory
+
