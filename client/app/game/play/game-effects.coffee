@@ -169,4 +169,3 @@ class ExplosionFactory
 
 
 exports.ExplosionFactory = ExplosionFactory
-

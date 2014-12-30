@@ -51,3 +51,5 @@ class GameConstant
   @cameraJoltPx = 20
   # How fast the camera moves when player drags
   @cameraDragRate = 1.5
+
+exports.GameConstant = GameConstant
