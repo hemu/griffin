@@ -20,3 +20,5 @@ Code style guidelines
 - require statements at beginning of file
 - variable what a require() module is assigned to starts with m (for 'module') and is camelCased:
     mInput = require './game-input'
+- client and shared modules are written in coffeescript
+- server modules written in javascript 
