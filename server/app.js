@@ -34,6 +34,11 @@ sockets.on('connection', function(socket){
   console.log('************** a user connected ****************');
 });
 
+sockets.on('playerJoinMap', function(msg){
+  console.log("player joined map apparently");
+  console.log(msg);
+})
+
 // var socketio = io(server, {
 //   serveClient: (config.env === 'production') ? false : true,
 //   path: '/socket.io-client'
