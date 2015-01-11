@@ -1,3 +1,6 @@
+'use strict'
+
+console.log "game-route.coffee"
 require('./game')
 .config ($routeProvider) ->
   $routeProvider

@@ -1,4 +1,4 @@
-mConfig = require './game-config'
+mConfig = require 'world/game-config'
 
 class WorldCreator
 

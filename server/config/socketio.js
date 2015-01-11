@@ -13,12 +13,12 @@ function onDisconnect(socket) {
 // When the user connects.. perform this
 function onConnect(socket) {
   // When the client emits 'info', this listens and executes
-  socket.on('info', function (data) {
-    console.info('[%s] %s', socket.address, JSON.stringify(data, null, 2));
-  });
+  // socket.on('info', function (data) {
+  //   console.info('[%s] %s', socket.address, JSON.stringify(data, null, 2));
+  // });
 
-  // Insert sockets below
-  require('../api/thing/thing.socket').register(socket);
+  // // Insert sockets below
+  // require('../api/thing/thing.socket').register(socket);
 }
 
 module.exports = function (socketio) {

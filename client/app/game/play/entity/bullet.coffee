@@ -1,7 +1,7 @@
-mConfig = require './game-config'
-mUtil = require './game-util'
-mEffects = require './game-effects'
-mEntity = require './entity'
+mConfig = require 'world/game-config'
+mUtil = require 'util/game-util'
+mEffects = require 'world/game-effects'
+mEntity = require 'entity/entity'
 
 class Bullet
 

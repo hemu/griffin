@@ -1,5 +1,5 @@
-mConfig = require './game-config'
-mUtil = require './game-util'
+mConfig = require 'world/game-config'
+mUtil = require 'util/game-util'
 
 class GameUI
   @shost = null

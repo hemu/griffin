@@ -1,9 +1,9 @@
-mConfig = require './game-config'
-mUtil = require './game-util'
-mEntity = require './entity'
-mReticule = require './reticule'
-mEffects = require './game-effects'
-mBullet = require './bullet'
+mConfig = require 'world/game-config'
+mUtil = require 'util/game-util'
+mReticule = require 'ui/reticule'
+mEffects = require 'world/game-effects'
+mEntity = require 'entity/entity'
+mBullet = require 'entity/bullet'
 
 class Player
 

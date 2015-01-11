@@ -616,12 +616,14 @@ module.exports = function (grunt) {
     browserify: {
       dist: {
         files: {
-          'client/client.js': ['node_modules/shared-core/**/*.coffee', 'client/app/**/*.coffee']
+          // 'client/client.js': ['node_modules/shared-core/**/*.coffee', 'client/app/**/*.coffee']
+          'client/client.js': ['client/app/app.coffee']
         },
         options: {
           transform: ['coffeeify'],
           browserifyOptions: {
             extensions: ['.coffee'],
+            paths: ['./client/app/game/play'],
             debug: true
           },
           watch: true,

@@ -6,6 +6,7 @@ require('angular-resource')
 require('angular-sanitize')
 require('angular-route')
 require('angular-socket-io')
+require('./game/game-route')
 
 # Specify all module dependencies for our griffinApp.
 angular.module 'griffinApp', [
@@ -15,19 +16,19 @@ angular.module 'griffinApp', [
   'ngRoute',
   'btford.socket-io',
   # 'ui.bootstrap',
-  # 'griffinApp.game',
   require('./game/game').name
   # The main client game module which contains all phaser code.
 ]
 .config ($routeProvider, $locationProvider, $httpProvider) ->
+  console.log "griffinApp config"
   $routeProvider
-  .otherwise
-    redirectTo: '/'
-
+  # .otherwise
+  #   redirectTo: '/'
   $locationProvider.html5Mode true
   $httpProvider.interceptors.push 'authInterceptor'
 
 .factory 'authInterceptor', ($rootScope, $q, $cookieStore, $location) ->
+  console.log "griffinApp authInterceptor"
   # Add authorization token to headers
   request: (config) ->
     config.headers = config.headers or {}

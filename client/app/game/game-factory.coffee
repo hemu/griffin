@@ -16,7 +16,9 @@ createGame = (scope, players, mapId, ele, injector) ->
   game.state.add 'Boot', new mStates.boot.BootState, false
   game.state.add 'Preloader', new mStates.preloader.PreloaderState, false
   game.state.add 'MainMenu', new mStates.menu.MainMenuState, false
+  game.state.add 'Join', new mStates.join.JoinState, false
   game.state.add 'Play', new mStates.play.PlayState, false
+
   game.state.start 'Boot', true, false, null
 
 

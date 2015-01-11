@@ -1,4 +1,4 @@
-mConfig = require './game-config'
+mConfig = require 'world/game-config'
 
 # worth considering if we will get a win later by separating into 
 # KeyboardInputs and MouseInputs. so same inputs module 

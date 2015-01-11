@@ -1,9 +1,9 @@
 module.exports = 
 (function(app, io) {
-  var util = require('util');
-  var Player = require('./../models/Player');
-  var Map = require('./../models/Map');
-
+  // var util = require('util');
+  // var Player = require('./../models/Player');
+  // var Map = require('./../models/Map');
+  console.log("io-routes............");
   g = {
     io: undefined,
     players: [],
@@ -18,11 +18,12 @@ module.exports =
   }
 
   function bindSocketEvents() {
+    console.log("bindSocketEvents");
     g.io.sockets.on('connection', function onConnection(socket) {
-      util.log("New client connected to server: " + socket.id);
+      console.log("New client connected to server: " + socket.id);
       socket.emit('connected', { id: socket.id });
-      var player = new Player({ id: socket.id });
-      g.players.push(player);
+      // var player = new Player({ id: socket.id });
+      // g.players.push(player);
       socket.on('playerJoinMap', onPlayerJoinMap);
       // socket.on('updatePlayer', onUpdatePlayer);
       // socket.on('disconnect', onDisconnect);
@@ -37,6 +38,8 @@ module.exports =
 
   var onPlayerJoinMap = function(data) {
     console.log("new player joined map");
+    console.log("******************************");
+    console.log("******************************");
     console.log(data);
   }
 

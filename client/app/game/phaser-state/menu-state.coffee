@@ -14,6 +14,6 @@ class MainMenuState extends Phaser.State
 		@startGame()
 
 	startGame: =>
-		@game.state.start "Play", true, false
+		@game.state.start "Join", true, false
 
 exports.MainMenuState = MainMenuState

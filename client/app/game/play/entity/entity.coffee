@@ -1,4 +1,4 @@
-mUtil = require './game-util'
+mUtil = require 'util/game-util'
 
 # Entity object
 #
