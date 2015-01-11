@@ -5,7 +5,7 @@ require('angular-cookies')
 require('angular-resource')
 require('angular-sanitize')
 require('angular-route')
-require('angular-socket-io')
+# require('angular-socket-io')
 require('./game/game-route')
 
 # Specify all module dependencies for our griffinApp.
@@ -14,7 +14,7 @@ angular.module 'griffinApp', [
   'ngResource',
   'ngSanitize',
   'ngRoute',
-  'btford.socket-io',
+  # 'btford.socket-io',
   # 'ui.bootstrap',
   require('./game/game').name
   # The main client game module which contains all phaser code.

@@ -2,17 +2,14 @@
 
 console.log "game.coffee module"
 require('angular')
-require('angular-socket-io')
+io = require('socket.io-client')
 mGameFactory = require('./game-factory')
 
-griffinAppGameModule = angular.module 'griffinApp.game', [
-  'btford.socket-io',
-]
+griffinAppGameModule = angular.module 'griffinApp.game', []
 
-.factory 'socket', (socketFactory) ->
-  console.log "defining factory socket in griffinAppGameModule"
-  return socketFactory()
-
+.factory 'socket', ->
+  return io()
+  
 .controller 'GameCtrl', (socket) ->
   socket.connect();
   console.log "GameCtrl triggered"

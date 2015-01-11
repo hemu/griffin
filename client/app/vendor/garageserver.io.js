@@ -23,7 +23,7 @@ api methods
     getId() : playerid
     sendServerEvent(data)
 */
-var GarageServerIO = (function (socketio) {
+var GarageServerIO = function (socketio) {
 
     "use strict";
 
@@ -429,6 +429,6 @@ var GarageServerIO = (function (socketio) {
         sendServerEvent: sendServerEvent
     };
 
-}) (window.io);
+}
 
 exports.GarageServerIO = GarageServerIO;

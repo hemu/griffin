@@ -27,14 +27,20 @@ var server = require('http').createServer(app);
 // angular-socket-io module which wraps functionality 
 // in a socket service
 // https://github.com/btford/angular-socket-io
-var mSocketIO = require('socket.io');
-var socketio = mSocketIO(server, {
-  serveClient: (config.env === 'production') ? false : true,
-  path: '/socket.io-client'
+var io = require('socket.io');
+var sockets = io.listen(server);
+
+sockets.on('connection', function(socket){
+  console.log('************** a user connected ****************');
 });
 
-require('./config/socketio')(socketio);
-require('./routes-sockets/io-route.js')(app, socketio);
+// var socketio = io(server, {
+//   serveClient: (config.env === 'production') ? false : true,
+//   path: '/socket.io-client'
+// });
+
+// require('./config/socketio')(socketio);
+// require('./routes-sockets/io-route.js')(app, socketio);
 require('./config/express')(app);
 require('./routes')(app);
 
