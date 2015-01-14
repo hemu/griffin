@@ -5,17 +5,9 @@ mConfig = require 'world/game-config'
 mCam = require 'world/game-camera'
 mPlayer = require 'entity/player'
 
-class SessionHost
+class PlayController
 
   constructor: (@game) ->
-    # XXX sessionid is very important.  A unique sessionid should be assigned
-    # to each human player in a multiplayer game, and the other players'
-    # sessionids must be kept hidden on the server.  When the server sends
-    # commands to the server, they must send their sessionid for verification.
-    # The server then processes the command if the player's sessionid matches
-    # that of the active player.  In fact, if the player's sessionid does not
-    # match the in-game player's, don't send anything to the server at all to
-    # conserve bandwidth.
     @sessionid = null
     @players = []   # array of Player objects
     @player_delays = {}  # dict of delays (value) where key is player id
@@ -38,7 +30,6 @@ class SessionHost
     @gameOver = false
 
   initialize: (player_configs) ->
-
     mInput.GameInput.shost = this
     mInput.GameInput.setupInputs()
     mUi.GameUI.initialize(this)
@@ -296,4 +287,4 @@ class SessionHost
         remaining_bullets.push(bullet)      
     @bullets = remaining_bullets
 
-exports.SessionHost = SessionHost
+exports.PlayController = PlayController

@@ -40,6 +40,7 @@ class GameInput
       @shost.playerChargeShot(dt)
 
   @setupInputs: () ->
+    console.log "setupInputs GameInput"
     # Disable certain keys from propagating to browser
     @shost.game.input.keyboard.addKeyCapture([
     #  Phaser.Keyboard.UP,

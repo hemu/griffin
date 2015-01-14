@@ -1,25 +1,20 @@
 'use strict'
 
-console.log "game.coffee module"
 require('angular')
 io = require('socket.io-client')
-mGameFactory = require('./game-factory')
+mSessionFactory = require('session/session-factory')
 
 griffinAppGameModule = angular.module 'griffinApp.game', []
 
 .factory 'socket', ->
-  return io()
+  return io
   
 .controller 'GameCtrl', (socket) ->
-  socket.connect();
   console.log "GameCtrl triggered"
-  console.log socket
-  socket.emit('playerJoinMap', 'hey')
-  console.log "socket emitted playerJoinMap"
 
-.directive 'gameCanvasCont', ($injector) ->
+.directive 'gameCanvasCont', ($injector, socket) ->
   linkFn = (scope, ele, attrs) ->
-    mGameFactory.createGame scope, scope.players, scope.mapId, ele, $injector
+    mSessionFactory.create scope, socket
     
   return {
     scope:

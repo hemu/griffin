@@ -623,7 +623,7 @@ module.exports = function (grunt) {
           transform: ['coffeeify'],
           browserifyOptions: {
             extensions: ['.coffee'],
-            paths: ['./client/app/game/play'],
+            paths: ['./client/app/game/play', './client/app/game', './shared-core'],
             debug: true
           },
           watch: true,

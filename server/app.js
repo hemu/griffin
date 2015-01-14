@@ -30,14 +30,13 @@ var server = require('http').createServer(app);
 var io = require('socket.io');
 var sockets = io.listen(server);
 
-sockets.on('connection', function(socket){
-  console.log('************** a user connected ****************');
-});
-
-sockets.on('playerJoinMap', function(msg){
-  console.log("player joined map apparently");
-  console.log(msg);
-})
+// sockets.on('connection', function(socket){
+//   console.log('************** a user connected ****************');
+//   socket.on('playerJoinMap', function(msg){
+//     console.log("player joined map");
+//     console.log(msg);
+//   })
+// });
 
 // var socketio = io(server, {
 //   serveClient: (config.env === 'production') ? false : true,
@@ -74,9 +73,9 @@ server.listen(config.port, function () {
 // subscription.unsubscribe();
 
 // start game loop
-// var mGame = require('./game/game');
-// var game = new mGame.Game(socketio);
-// game.start();
+var mGame = require('./game/game');
+var game = new mGame.Game();
+game.initialize(sockets);
 
 // Expose app
 exports = module.exports = app;

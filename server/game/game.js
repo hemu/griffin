@@ -4,42 +4,75 @@
 // It handles client side prediction, interpolation, reconciliation.
 var garageServer = require('../vendor/garageserver/garageserver.io');
 //var gamePhysics = require('../../shared/core');
+var mLogger = require('../logger');
+var mNetworkMessage = require('../../shared-core/network-message/network-message')
+var Event = mNetworkMessage.Event
+var MessageKey = mNetworkMessage.MessageKey
 
-function Game(socket) {
-  console.log("initializing game with garageserver");
+var Game = function (socket) {
+  this.serverLog = new mLogger.Logger('garage-server');
+  this.gLog = new mLogger.Logger('game');
+  this.socket = socket
   this.physicsInterval = 15;
   this.physicsDelta = this.physicsInterval / 1000;
   this.physicsIntervalId = 0;
+};
+
+Game.prototype.initialize = function(sockets) {
   var self = this;
-  this.gameServer = garageServer.createGarageServer(socket, 
+  this.gameServer = garageServer.createGarageServer(sockets, 
     {
-      logging: false,
+      logging: true,
       interpolation: false,
       clientSidePrediction: true,
       smoothingFactor: 0.3,
       interpolationDelay: 50,
-      onPlayerConnect: self.onPlayerConnect,
-      onPlayerDisconnect: self.onPlayerDisconnect
+      onPlayerConnect: function(socket) {
+        self.registerClient(socket);
+      },
+      onPlayerDisconnect: function() {
+        self.serverLog.log('player disconnected.');
+      }
     });
+};
+
+Game.prototype.registerClient = function(socket) {
+  this.gLog.log("new player registered");
+  if(this.isFull()){
+    this.gLog.log("all players have connected. starting game loop.");
+    this.start();
+  }
 }
 
-Game.prototype.onPlayerConnect = function() {
-  console.log("player connected");
-}
-
-Game.prototype.onPlayerDisconnect = function() {
-  console.log("player disconnected");
+// XXX For now hardcoded to return true once
+// there are 2 clients
+Game.prototype.isFull = function() {
+  var players = this.gameServer.getPlayers();
+  return (players && players.length == 2);
 }
 
 Game.prototype.start = function() {
-  console.log("started game serverrrrrrrrr");
   var self = this;
   this.physicsIntervalId = setInterval(
                                function() { self.update(); }, 
                                this.physicsInterval
                            );
   this.gameServer.start();
+  this.broadcastEvent(this.getEvent(Event.START_GAME));
+  this.gLog.log("game started.");
 };
+
+Game.prototype.getEvent = function(evt) {
+  var msg = {}
+  msg[MessageKey.EVENT] = evt;
+  return msg;
+}
+
+// should eventually be factored out into a separate
+// assistant object
+Game.prototype.broadcastEvent = function(data){
+  this.gameServer.sendPlayersEvent(data);
+}
 
 // Update loop
 // -----------
