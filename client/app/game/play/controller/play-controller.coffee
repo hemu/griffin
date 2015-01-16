@@ -4,10 +4,12 @@ mWorld = require 'world/world'
 mConfig = require 'world/game-config'
 mCam = require 'world/game-camera'
 mPlayer = require 'entity/player'
+State = require 'controller/state'
 
 class PlayController
 
-  constructor: (@game) ->
+  constructor: (@game, @sessionController) ->
+    
     @sessionid = null
     @players = []   # array of Player objects
     @player_delays = {}  # dict of delays (value) where key is player id
@@ -30,6 +32,7 @@ class PlayController
     @gameOver = false
 
   initialize: (player_configs) ->
+    @state = State.SETUP
     mInput.GameInput.shost = this
     mInput.GameInput.setupInputs()
     mUi.GameUI.initialize(this)

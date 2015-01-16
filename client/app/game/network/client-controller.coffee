@@ -1,8 +1,8 @@
-# postal is pub/sub library
-postal = require('postal')
-Channel = require('signal-message/signal').Channel
+
+# Channel = require('signal-message/signal').Channel
 Signal = require('signal-message/signal').Signal
-SignalKey = require('signal-message/signal').Key
+# SignalKey = require('signal-message/signal').Key
+mSignaler = require('signal-message/signal')
 mNetworkAssistant = require('network/network-assistant');
 
 class ClientController
@@ -15,15 +15,13 @@ class ClientController
     @initializeComm()
 
   initializeComm: ->
-    @channel = postal.channel()
-    @subSetup = @channel.subscribe Channel.SETUP, (data) =>
+    @emitter = new mSignaler.Signaler
+    @emitter.subscribeToStart( (data) =>
       if data.msg == Signal.IN_JOIN
         @assistant.start()
+    )
 
   registerStartGame: ->
-    signal = {}
-    signal[SignalKey] = Signal.START
-    @channel.publish Channel.SETUP, signal
-    
+    @emitter.signalStart()
 
 module.exports.ClientController = ClientController

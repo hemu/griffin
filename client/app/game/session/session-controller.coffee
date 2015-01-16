@@ -1,7 +1,7 @@
-postal = require('postal')
-Channel = require('signal-message/signal').Channel
+# Channel = require('signal-message/signal').Channel
 Signal = require('signal-message/signal').Signal
-SignalKey = require('signal-message/signal').Key
+# SignalKey = require('signal-message/signal').Key
+mSignaler = require('signal-message/signal')
 mState = require('session/game-state')
 mPlayController = require('controller/play-controller')
 mClientController = require('network/client-controller')
@@ -10,21 +10,21 @@ class SessionController
 
   constructor: (socket) ->
     @clientController = new mClientController.ClientController()
-    @channel = postal.channel()
     @initializeComm()
     @initialize(socket)
 
-  # comm needs to be pulled into separate module
   initializeComm: ->
-    @subSetup = @channel.subscribe Channel.SETUP, (data) =>
+    @emitter = new mSignaler.Signaler
+    @emitter.subscribeToStart( (data) =>
       if data.msg == Signal.START
-        @registerPlayers({})
+        @registerPlayers({}) #send player configs here
+    )
 
   initialize: (socket) ->
     @clientController.initialize(socket)
     # TODO: managing @phaserClient and states should prob be
-    # done by some other controller
-    # XXX: right now states just kick off other states... bad
+    # done by some controller (maybe this one)
+    # XXX: right now states just kick off other states
     @phaserClient = new Phaser.Game(800, 600, Phaser.CANVAS, "phaserGameCanvas")
     @phaserClient.state.add 'Boot', new mState.boot.BootState, false
     @phaserClient.state.add 'Preloader', new mState.preloader.PreloaderState, false
@@ -36,9 +36,7 @@ class SessionController
     @phaserClient.state.start 'Boot', true, false, null
   
   registerInJoin: ->
-    data = {}
-    data[SignalKey] = Signal.IN_JOIN
-    @channel.publish Channel.SETUP, data
+    @emitter.signalPlayerReady()
 
   registerPlayers: (playerConfigs) ->
     playerConfigs = [
@@ -46,7 +44,7 @@ class SessionController
       {id: "2", name: "VizualMenace"},
       {id: "3", name: "Gentlemen Killah"}
     ]
-    @phaserClient.state.start "Play", true, false, playerConfigs
+    @phaserClient.state.start "Play", true, false, playerConfigs, this
 
 
 module.exports = SessionController

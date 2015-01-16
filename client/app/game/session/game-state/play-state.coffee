@@ -16,11 +16,9 @@ class PlayState extends Phaser.State
     @curTime = date.getTime()
     @lastTime = @curTime
 
-  init: (playerConfigs) ->
-    console.log "PlayState"
-    console.log @game
+  init: (playerConfigs, sessionController) ->
     @playController = new mPlayController.PlayController(@game)
-    @playController.initialize playerConfigs
+    @playController.initialize playerConfigs, sessionController
 
   update: ->
     date = new Date()
