@@ -28,7 +28,7 @@ class NetworkAssistant
     console.log "garage server ready"
 
   onEvent: (msg) =>
-    console.log "-- received event --"
+    console.log "------ received event --------"
     console.log msg
     # XXX TODO better check to make sure key exists
     if msg[MessageKey.EVENT] == Event.INIT_GAME

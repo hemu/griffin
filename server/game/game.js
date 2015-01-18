@@ -6,6 +6,7 @@ var garageServer = require('../vendor/garageserver/garageserver.io');
 //var gamePhysics = require('../../shared/core');
 var mLogger = require('../logger');
 var mNetworkMessage = require('../../shared-core/network-message/network-message');
+var mTurnManager = require('./turn-manager');
 var Event = mNetworkMessage.Event;
 var MessageKey = mNetworkMessage.MessageKey;
 
@@ -21,6 +22,7 @@ var Game = function (socket) {
 Game.prototype.initialize = function(sockets) {
   var self = this;
   this.currentTurnId = null;
+  this.turnManager = new mTurnManager.TurnManager(this);
   this.gameServer = garageServer.createGarageServer(sockets, 
     {
       logging: true,
@@ -35,6 +37,11 @@ Game.prototype.initialize = function(sockets) {
         self.serverLog.log('player disconnected.');
       }
     });
+
+  this.dt = 0.015;
+  this.accumulator = 0.0;
+  this.curTime = null;
+  this.lastTime = null;
 };
 
 Game.prototype.registerClient = function(socket) {
@@ -45,10 +52,21 @@ Game.prototype.registerClient = function(socket) {
   }
 };
 
+Game.prototype.registerTurnEnd = function() {
+  console.log("registered end");
+  this.turnManager.startTurn();
+  var activePlayerId = this.turnManager.getActivePlayer();
+  var msg = {};
+  msg[MessageKey.TURN] = activePlayerId;
+  this.broadcastEvent(Event.CHANGE_TURN, msg);
+}
+
 // XXX For now hardcoded to return true once
 //     there are 2 clients XXXXXXX
 Game.prototype.isFull = function(){
   var players = this.gameServer.getPlayers();
+  var curPlayer;
+
   return (players && players.length === 2);
 };
 
@@ -66,6 +84,7 @@ Game.prototype.start = function(){
   // each player (positions, avatar, etc) + starting turn
   var msg = {};
   msg[MessageKey.INIT] = {};
+  var playerIds = [];
   var curPlayer;
   var spawnPos = [[800,1413], [1160,1413], [400,1413]];
   for(var i=0, len=players.length; i<len; i++){
@@ -73,8 +92,10 @@ Game.prototype.start = function(){
     // TODO just use fake x and y loc for now
     // eventually need to read in map spawn locations
     msg[MessageKey.INIT][curPlayer.id] = {pos: spawnPos[i]}
+    playerIds.push(curPlayer.id);
   }
   msg[MessageKey.TURN] = this.currentTurnId;
+  this.turnManager.initialize(playerIds);
   /*
   msg = {
     MessageKey.POS: {
@@ -85,6 +106,7 @@ Game.prototype.start = function(){
   }
   */
   this.broadcastEvent(Event.INIT_GAME, msg);
+  this.turnManager.startTurn();
   /* sample players 
   [ { id: 'hhLBEGTQa69MBtNRAAAA',
       state: {},
@@ -119,6 +141,18 @@ Game.prototype.broadcastEvent = function(evtType, data){
 // Entities are any objects with state that will be simulated by server (e.g. projectiles).
 // Players are special types of entities that can receive input from client.
 Game.prototype.update = function(){
+  var date = new Date();
+  this.lastTime = this.curTime;
+  this.curTime = date.getTime();
+
+  var frameTime = (this.curTime - this.lastTime) / 1000.0
+  this.accumulator += frameTime;
+
+  while(this.accumulator >= this.dt) {
+    this.accumulator -= this.dt;
+    this.turnManager.update(this.dt);
+  }
+
   // ---- update players ----
   // var players = this.gameServer.getPlayers(),
   //     entities = this.gameServer.getEntities(),

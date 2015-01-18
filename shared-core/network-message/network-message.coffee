@@ -8,12 +8,12 @@ Message =
 # might need to split these up
 # with more semantic grouping
 MessageKey =
-  EVENT: 'evt'
-  DATA: 'dt'
-  TURN: 'tid'
-  INIT: 'init'
-  POS: 'p'
-  FACING_DIR: 'fd'
+  EVENT: 'evt'      # generic event key
+  DATA: 'dt'        # generic data key
+  TURN: 'tid'       # current turn player id
+  INIT: 'init'      # initialize game
+  POS: 'p'          # player position
+  FACING_DIR: 'fd'  # player facing direction
 
 module.exports.Event = Event
 module.exports.Message = Message
