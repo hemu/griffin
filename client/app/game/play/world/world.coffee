@@ -144,15 +144,15 @@ class World
     else
       @spawnOrder = order
 
-  getSpawnForPlayerNum: (num) ->
-    if num >= @spawnPoints.length
-      return null
-    spawn_i = 0
-    for i in [0...@spawnOrder.length]
-      if @spawnOrder[i] == num
-        spawn_i = i
-        break
-    return @spawnPoints[spawn_i]
+  # getSpawnForPlayerNum: (num) ->
+  #   if num >= @spawnPoints.length
+  #     return null
+  #   spawn_i = 0
+  #   for i in [0...@spawnOrder.length]
+  #     if @spawnOrder[i] == num
+  #       spawn_i = i
+  #       break
+  #   return @spawnPoints[spawn_i]
 
   createSurroundingSpace: () ->
     # The play area of the world, brought in by the image, will take up

@@ -16,6 +16,7 @@ class PlayState extends Phaser.State
     @curTime = date.getTime()
     @lastTime = @curTime
 
+  # this gets called when game.state.start is called
   init: (playerConfigs, sessionController) ->
     @playController = new mPlayController.PlayController(@game)
     @playController.initialize playerConfigs, sessionController

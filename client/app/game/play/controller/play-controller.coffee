@@ -10,7 +10,7 @@ class PlayController
 
   constructor: (@game, @sessionController) ->
     
-    @sessionid = null
+    @sessionId = null
     @players = []   # array of Player objects
     @player_delays = {}  # dict of delays (value) where key is player id
     @bullets = []
@@ -27,13 +27,20 @@ class PlayController
     # game camera
     @gcamera = null
 
-    @endingTurn = false
+    # @endingTurn = false
     @endTurnTimer = 0
     @gameOver = false
+    @setState(State.INIT)
 
-  initialize: (player_configs) ->
-    @state = State.SETUP
-    mInput.GameInput.shost = this
+  setState: (newState) ->
+    @state = newState
+
+  getState: ->
+    return @state
+
+  initialize: (initConfig) ->
+    @setState(State.SETUP)
+    mInput.GameInput.controller = this
     mInput.GameInput.setupInputs()
     mUi.GameUI.initialize(this)
     
@@ -68,19 +75,28 @@ class PlayController
 
     num_players = 0
     
-    for playerConfig in player_configs
-      id = playerConfig.id
-      name = playerConfig.name
-      spawnXY = @world.getSpawnForPlayerNum(num_players)
-      # if spawnXY == null
-      #   spawnXY = fakeSpawnPoints[num_players]
+    # initConfig
+    # {
+    #    init: 
+    #      id0: 
+    #        pos: [x0, y0]
+    #      id1:
+    #        pos: [x1, y1]
+    #    myid: "Awkjhds72jds2sd"
+    #    turn: "Awkjhds72jds2sd"
+    # }
 
-      if spawnXY == null
-        num_players++
-        continue
+    @sessionId = initConfig['myid']
+
+    for own id,playerConfig of initConfig['init']
+      # for now just set the name same as id
+      name = id
+      spawnPos = playerConfig['pos']
+      if spawnPos == undefined or spawnPos == null
+        throw new Error "spawn position not found for player #{id}"
       # instantiate player objects and add to @players list
       player = new mPlayer.Player(this)
-      player.initialize(this, id, spawnXY[0], spawnXY[1],
+      player.initialize(this, id, spawnPos[0], spawnPos[1],
         mConfig.GameConstant.playerScale, 0)
       player.initHealth(200)
       player.setName(name)
@@ -98,9 +114,6 @@ class PlayController
       while true
         for j in [i..num_players-1]
           if j != i
-            #console.log 'disable ', i, ' ', j
-            console.log @players
-            console.log @players[i]
             @p2world.disableBodyCollision(@players[i].entity.p2body, @players[j].entity.p2body)
         i += 1
         if i == num_players
@@ -109,14 +122,11 @@ class PlayController
     @gcamera = new mCam.GameCamera(this)
     @gcamera.initialize(1.0)
     @endPlayerTurn()
-
     mUi.GameUI.bringToTop()
-
     #@game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR).onDown.add(@playerFire, this)
     #@game.input.keyboard.addKey(Phaser.Keyboard.Z).onDown.add(@toggleZoom, this)
 
   update: (dt) ->
-
     # step p2world for physics simulation to occur
     @p2world.step(dt)
     
@@ -146,19 +156,20 @@ class PlayController
           if !@active_player.hasAliveBullets()
             @active_player.endTurn()
 
-    if @endingTurn
+    # if @endingTurn
+    if @getState() == State.REACT
       @endTurnTimer -= dt
       # XXX In future, need to also check if all players and bullets have 
       # stopped moving before ending turn
       if @endTurnTimer <= 0
-        @endingTurn = false
+        # @endingTurn = false
         @endTurnTimer = 0
         @endPlayerTurn()
       return
 
     mInput.GameInput.update(dt)
 
-  testExplosion: () ->
+  testExplosion: ->
     x = @game.input.activePointer.worldX
     y = @game.input.activePointer.worldY
     ExplosionFactory.createPebbleBasic(@game, x, y)
@@ -172,24 +183,32 @@ class PlayController
     @active_player.moveLeft(dt, @world)
     mUi.GameUI.updateMoveBar(
       1.0 - @active_player.cur_movement / @active_player.max_movement)
+
   playerMoveRight: (dt) ->
     @active_player.moveRight(dt, @world)
     mUi.GameUI.updateMoveBar(
       1.0 - @active_player.cur_movement / @active_player.max_movement)
+
   playerAimUp: (dt) ->
     @active_player.aimUp(dt)
+
   playerAimDown: (dt) ->
     @active_player.aimDown(dt)
+
   playerChargeShot: (dt) ->
     @active_player.chargeShot(dt)
     mUi.GameUI.updateShotBar(
       @active_player.shot_charge / @active_player.max_shot_charge)
-  playerFire: () ->
+
+  playerFire: ->
     @active_player.fire()
+
   playerMoveCamera: (x, y) ->
     @gcamera.playerMoveCamera(x, y)
-  playerReleaseCamera: () ->
+
+  playerReleaseCamera: ->
     @gcamera.playerReleaseCamera()
+
   playerSetWeapon: (num) ->
     # XXX Currently implementation won't work for multiplayer.  Need to 
     # associate Player objects with sessionid of human players, then set the
@@ -203,8 +222,6 @@ class PlayController
     if @active_player == null
       return
 
-    console.log 'ending player ' + @active_player.id
-
     if died
       @removePlayer(@active_player)
     else
@@ -213,12 +230,12 @@ class PlayController
 
     @active_player = null
     # Kick off variable and timer to start end turn countdown
-    @endingTurn = true
+    @setState(State.REACT)
+    # @endingTurn = true
     @endTurnTimer = mConfig.GameConstant.endTurnWaitTime
 
   endPlayerTurn: ->
-    console.log "end player turn" 
-
+    @setState(State.CLEANUP)
     next_player_id = -1
     min_delay = 99999
 
@@ -229,13 +246,9 @@ class PlayController
 
     # Note to self:
     # don't clear next_player_id's delay!  Should be cumulative thru turns
-    console.log "!!!!!!!!!!!!!!!!!!!"
     for player in @players
       player.hideUI()   # hides aiming device, UI displays, etc
-      console.log player.id
-      console.log next_player_id
       if player.id == next_player_id
-        console.log "SET ACTIVE PLAYER"
         @active_player = player
         # XXX Will this reference the actual player, or a copy of it for the 
         # loop?
@@ -244,8 +257,6 @@ class PlayController
         @active_player.initTurn()
         @endTurnRefreshUI()
 
-    console.log "########"
-    console.log @active_player
     @gcamera.follow(@active_player.sprite)
     @gcamera.easeTo(@active_player.getX() - @game.width/2, @active_player.getY() - @game.height/2)
 
@@ -289,5 +300,6 @@ class PlayController
       if bullet != removeBullet
         remaining_bullets.push(bullet)      
     @bullets = remaining_bullets
+
 
 exports.PlayController = PlayController

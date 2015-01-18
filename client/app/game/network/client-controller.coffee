@@ -1,7 +1,3 @@
-
-# Channel = require('signal-message/signal').Channel
-Signal = require('signal-message/signal').Signal
-# SignalKey = require('signal-message/signal').Key
 mSignaler = require('signal-message/signal')
 mNetworkAssistant = require('network/network-assistant');
 
@@ -16,12 +12,11 @@ class ClientController
 
   initializeComm: ->
     @emitter = new mSignaler.Signaler
-    @emitter.subscribeToStart( (data) =>
-      if data.msg == Signal.IN_JOIN
-        @assistant.start()
-    )
+    @emitter.subscribeToPlayerReady( =>
+      @assistant.start()
+      )
 
-  registerStartGame: ->
-    @emitter.signalStart()
+  registerInitGame: (initConfig) ->
+    @emitter.signalInit(initConfig)
 
 module.exports.ClientController = ClientController

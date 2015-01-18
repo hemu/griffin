@@ -678,6 +678,7 @@ module.exports = function (grunt) {
       'express:dev',
       'wait',
       'open',
+      'open',
       'watch'
     ]);
   });

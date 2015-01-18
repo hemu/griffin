@@ -1,6 +1,3 @@
-# Channel = require('signal-message/signal').Channel
-Signal = require('signal-message/signal').Signal
-# SignalKey = require('signal-message/signal').Key
 mSignaler = require('signal-message/signal')
 mState = require('session/game-state')
 mPlayController = require('controller/play-controller')
@@ -15,15 +12,14 @@ class SessionController
 
   initializeComm: ->
     @emitter = new mSignaler.Signaler
-    @emitter.subscribeToStart( (data) =>
-      if data.msg == Signal.START
-        @registerPlayers({}) #send player configs here
-    )
+    @emitter.subscribeToInit( (initConfig) =>
+        @registerPlayers(initConfig) #send player configs here
+      )
 
   initialize: (socket) ->
     @clientController.initialize(socket)
     # TODO: managing @phaserClient and states should prob be
-    # done by some controller (maybe this one)
+    # done by some other helper objs
     # XXX: right now states just kick off other states
     @phaserClient = new Phaser.Game(800, 600, Phaser.CANVAS, "phaserGameCanvas")
     @phaserClient.state.add 'Boot', new mState.boot.BootState, false
@@ -38,13 +34,21 @@ class SessionController
   registerInJoin: ->
     @emitter.signalPlayerReady()
 
-  registerPlayers: (playerConfigs) ->
-    playerConfigs = [
-      {id: "1", name: "UnluckyAmbassador"},
-      {id: "2", name: "VizualMenace"},
-      {id: "3", name: "Gentlemen Killah"}
-    ]
-    @phaserClient.state.start "Play", true, false, playerConfigs, this
+  registerPlayers: (initConfig) ->
+    # player config
+    # {
+    #    init: 
+    #      id0: 
+    #        pos: [x0, y0]
+    #      id1:
+    #        pos: [x1, y1]
+    #    myid: "Awkjhds72jds2sd"
+    #    turn: "Awkjhds72jds2sd"
+    # }
+
+    # this calls the state's init method and passes initConfig and self
+    # as params
+    @phaserClient.state.start "Play", true, false, initConfig, this
 
 
 module.exports = SessionController
