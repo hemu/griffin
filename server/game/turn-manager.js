@@ -41,8 +41,8 @@ TurnManager.prototype.startTurn = function(){
 }
 
 TurnManager.prototype.update = function(dt) {
-  var done = this.timer.update(dt);
-  if(done){
+  var active = this.timer.update(dt);
+  if(!active){
     this.endTurn();
   }
 }

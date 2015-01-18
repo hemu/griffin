@@ -40,8 +40,7 @@ Game.prototype.initialize = function(sockets) {
 
   this.dt = 0.015;
   this.accumulator = 0.0;
-  this.curTime = null;
-  this.lastTime = null;
+  
 };
 
 Game.prototype.registerClient = function(socket) {
@@ -72,6 +71,12 @@ Game.prototype.isFull = function(){
 
 Game.prototype.start = function(){
   var self = this;
+
+  // initialize update loop time tracking
+  var date = new Date()
+  this.curTime = date.getTime()
+  this.lastTime = this.curTime
+
   this.physicsIntervalId = setInterval(
                                function() { self.update(); }, 
                                this.physicsInterval
@@ -147,6 +152,9 @@ Game.prototype.update = function(){
 
   var frameTime = (this.curTime - this.lastTime) / 1000.0
   this.accumulator += frameTime;
+
+  //console.log('update');
+  //console.log(frameTime);
 
   while(this.accumulator >= this.dt) {
     this.accumulator -= this.dt;
