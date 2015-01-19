@@ -39,9 +39,10 @@ class Signaler
     data[Key.TYPE] = InitSignal.JOIN
     @channel.publish Channel.INIT, data
 
-  signalTurn: (id) ->
+  signalTurn: (turnConfig) ->
     data = {}
-    data[SetupSignal.PLAYER_SETUP] = id
+    data[Key.TYPE] = SetupSignal.PLAYER_SETUP
+    data[Key.DATA] = turnConfig
     @channel.publish Channel.TURN_SETUP, data
   # ---------------------------------------------
 
@@ -58,8 +59,9 @@ class Signaler
 
   # sends id of player turn
   subscribeToTurn: (callback) ->
-    @channel.subscribe Channel.SETUP, (data) =>
-      callback(data[SetupSignal.PLAYER_SETUP])
+    @channel.subscribe Channel.TURN_SETUP, (data) =>
+      if data[Key.TYPE] == SetupSignal.PLAYER_SETUP
+        callback(data[Key.DATA])
   #-----------------------------------------------
 
 

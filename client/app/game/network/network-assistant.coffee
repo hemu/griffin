@@ -37,6 +37,10 @@ class NetworkAssistant
         'turn': msg[MessageKey.DATA][MessageKey.TURN]
         'myid': @garageServer.getId()
       @client.registerInitGame(initConfig);
+    else if msg[MessageKey.EVENT] == Event.CHANGE_TURN
+      turnConfig = 
+        'tid':msg[MessageKey.DATA][MessageKey.TURN]
+      @client.registerChangeTurn(turnConfig)
 
   onUpdatePlayerPrediction: =>
     console.log "player update from garage server"

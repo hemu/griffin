@@ -9,6 +9,10 @@ class GameInput
   @spaceIsDown = false
   @leftDragLast = null
 
+  @canIssueCommands: () ->
+    return @controller.getState() == State.INPUT
+
+  """
   @issuerIsNotActive: () ->
     # XXX in future need to check if the player issuing this command
     # is the active player
@@ -16,12 +20,13 @@ class GameInput
     #   return true
     # if @controller.endingTurn
     return @controller.getState() == State.INPUT
-
+    """
   @update: (dt) ->
 
     # ==========================================================================
     # Actions allowed for active player only
-    if @issuerIsNotActive()
+    if !@canIssueCommands()
+      #console.log('YOU ARE NOT ACTVIE')
       return
 
     if (@controller.game.input.keyboard.isDown(Phaser.Keyboard.LEFT))
@@ -95,14 +100,14 @@ class GameInput
       amt)
 
   @spaceKeyDown: () ->
-    if @issuerIsNotActive()
+    if !@canIssueCommands()
       return
     #console.log 'space key down'
     #@controller.playerFire()
     @spaceIsDown = true
 
   @spaceKeyUp: () ->
-    if @issuerIsNotActive()
+    if !@canIssueCommands()
       return
     @spaceIsDown = false
     #console.log 'space key up'

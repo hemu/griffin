@@ -10,7 +10,7 @@ class PlayController
 
   constructor: (@game, @sessionController) ->
     
-    @sessionId = null
+    @sessionId = null  # The player's secret session id, known only to him
     @players = []   # array of Player objects
     @player_delays = {}  # dict of delays (value) where key is player id
     @bullets = []
@@ -125,6 +125,15 @@ class PlayController
     mUi.GameUI.bringToTop()
     #@game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR).onDown.add(@playerFire, this)
     #@game.input.keyboard.addKey(Phaser.Keyboard.Z).onDown.add(@toggleZoom, this)
+
+  changeTurn: (turnConfig) ->
+    activeId = turnConfig['tid']
+    if @sessionId == activeId
+      console.log 'MY TURN'
+      @setState(State.INPUT)
+    else
+      console.log 'NOT MY TURN'
+      @setState(State.TURN_WAIT)
 
   update: (dt) ->
     # step p2world for physics simulation to occur

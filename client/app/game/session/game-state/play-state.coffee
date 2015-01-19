@@ -18,8 +18,8 @@ class PlayState extends Phaser.State
 
   # this gets called when game.state.start is called
   init: (playerConfigs, sessionController) ->
-    @playController = new mPlayController.PlayController(@game)
-    @playController.initialize playerConfigs, sessionController
+    @playController = new mPlayController.PlayController(@game, sessionController)
+    @playController.initialize playerConfigs
 
   update: ->
     date = new Date()

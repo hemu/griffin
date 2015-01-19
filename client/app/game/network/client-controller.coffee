@@ -19,4 +19,7 @@ class ClientController
   registerInitGame: (initConfig) ->
     @emitter.signalInit(initConfig)
 
+  registerChangeTurn: (turnConfig) ->
+    @emitter.signalTurn(turnConfig)
+
 module.exports.ClientController = ClientController

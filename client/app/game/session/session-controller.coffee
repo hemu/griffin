@@ -15,6 +15,9 @@ class SessionController
     @emitter.subscribeToInit( (initConfig) =>
         @registerPlayers(initConfig) #send player configs here
       )
+    @emitter.subscribeToTurn( (turnConfig) =>
+        @changeTurn(turnConfig)
+      )
 
   initialize: (socket) ->
     @clientController.initialize(socket)
@@ -28,7 +31,8 @@ class SessionController
     joinState = new mState.join.JoinState
     joinState.controller = this
     @phaserClient.state.add 'Join', joinState, false
-    @phaserClient.state.add 'Play', new mState.play.PlayState, false
+    @playState = new mState.play.PlayState
+    @phaserClient.state.add 'Play', @playState, false
     @phaserClient.state.start 'Boot', true, false, null
   
   registerInJoin: ->
@@ -49,6 +53,11 @@ class SessionController
     # this calls the state's init method and passes initConfig and self
     # as params
     @phaserClient.state.start "Play", true, false, initConfig, this
+
+  changeTurn: (turnConfig) ->
+    #console.log turnConfig['tid']
+    playController = @playState.playController
+    playController.changeTurn(turnConfig)
 
 
 module.exports = SessionController
