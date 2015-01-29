@@ -91,7 +91,7 @@ Game.prototype.start = function(){
   msg[MessageKey.INIT] = {};
   var playerIds = [];
   var curPlayer;
-  var spawnPos = [[800,1413], [1160,1413], [400,1413]];
+  var spawnPos = [[1200,200], [1300,200], [1400,200]];
   for(var i=0, len=players.length; i<len; i++){
     curPlayer = players[i];
     // TODO just use fake x and y loc for now

@@ -38,6 +38,7 @@ class NetworkAssistant
         'myid': @garageServer.getId()
       @client.registerInitGame(initConfig);
     else if msg[MessageKey.EVENT] == Event.CHANGE_TURN
+      console.log 'CHANGE TURN'
       turnConfig = 
         'tid':msg[MessageKey.DATA][MessageKey.TURN]
       @client.registerChangeTurn(turnConfig)

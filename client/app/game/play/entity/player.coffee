@@ -25,18 +25,29 @@ class Player
     @healthsprite = null
     @healthbarsprite = null
     @aimspeed = 70
-    @speed = 70
+    @speed = 25
+    @max_move_points = 200 # total number of move points
+    @cur_move_points = 200 # current number of move ments
+    @move_recharge_rate = 10    # how many move points recharges per second
+    @move_deplete_rate = 14     # how many move points depleted per second
+    @teleport_deplete_rate = 80
+
     @max_movement = 200
-    @cur_movement = 0
     @facingLeft = true
 
     # firing and charging shot
     @wep_num = 0
     @reticule = null
-    @can_fire = false
-    @shot_charge_rate = 500
-    @shot_charge = 0
-    @max_shot_charge = 1500
+    @can_fire = true
+
+    @max_shot_points = 200
+    @cur_shot_points = 200
+    @shot_recharge_rate = 12
+    @shot_deplete_rate = 100
+
+    @charge_rate = 420
+    @cur_charge = 0
+    @max_charge = 1100
     @last_charge = 0        # used to show last shot strength indicator
 
     # Specifies a dictionary of delay times and bullets to create with their
@@ -50,6 +61,7 @@ class Player
     @sprite.angle = rot
     @sprite.scale.x = @scale
     @sprite.scale.y = @scale
+    @sprite.body = null
     @shost.playgroup.add(@sprite)
 
     # Create physics entity
@@ -90,21 +102,21 @@ class Player
     @healthbarsprite = new Phaser.Sprite(@shost.game, 0, 0, 'healthbar')
     @healthbarsprite.angle = 0
     @healthbarsprite.scale.x = hscalex
-    @healthbarsprite.scale.y = 0.5
+    @healthbarsprite.scale.y = 1.2
     @healthbarsprite.anchor =
       x: 0.0
       y: 0.5
     @healthbarsprite.x = -@healthbarsprite.width/2
-    @healthbarsprite.y = 4
+    @healthbarsprite.y = 10
     @healthsprite = new Phaser.Sprite(@shost.game, 0, 0, 'health')
     @healthsprite.angle = 0
     @healthsprite.scale.x = hscalex
-    @healthsprite.scale.y = 0.5
+    @healthsprite.scale.y = 1.2
     @healthsprite.anchor =
       x: 0.0
       y: 0.5
     @healthsprite.x = -@healthsprite.width/2
-    @healthsprite.y = 4
+    @healthsprite.y = 10
     @sprite.addChild(@healthbarsprite)
     @sprite.addChild(@healthsprite)
 
@@ -142,18 +154,14 @@ class Player
     @healthbarsprite = null
     @healthsprite.destroy(true)
     @healthsprite = null
-    if @active
-      # if player is active player, endTurn will remove the player from game
-      @endTurn(true)
-    else
-      # otherwise manually remove player from game right now
-      @shost.removePlayer(this)
+    @shost.removePlayer(this)
 
   # ============================================================================
   #                             WEAPONS AND FIRING
   # ============================================================================
   setWeapon: (num) ->
     @wep_num = num
+    @cur_charge = 0
 
   aimUp: (dt) ->
     aimChange = @aimspeed * dt
@@ -166,10 +174,28 @@ class Player
     @reticule.update(@sprite.x, @sprite.y)
 
   chargeShot: (dt) ->
-    @last_charge = @shot_charge
-    addCharge = @shot_charge_rate * dt
-    @shot_charge += addCharge
-    @shot_charge = mUtil.GameMath.clamp(@shot_charge, 1, @max_shot_charge)
+    movement = false
+
+    # weapon #2 is teleport for now
+    if @wep_num == 2
+      movement = true
+
+    if movement
+      shot_cost = @teleport_deplete_rate * dt
+      if shot_cost > @cur_move_points
+        shot_cost = @cur_move_points
+      @cur_move_points -= shot_cost
+      addCharge = @charge_rate * shot_cost / @teleport_deplete_rate
+    else
+      shot_cost = @shot_deplete_rate * dt
+      if shot_cost > @cur_shot_points
+        shot_cost = @cur_shot_points
+      @cur_shot_points -= shot_cost
+      addCharge = @charge_rate * shot_cost / @shot_deplete_rate
+
+    @last_charge = @cur_charge
+    @cur_charge += addCharge
+    @cur_charge = mUtil.GameMath.clamp(@cur_charge, 1, @max_charge)
 
   spawnBullet: (spec) ->
 
@@ -184,7 +210,7 @@ class Player
 
     # XXX affected by wind, etc
     fx = 0
-    fy = 9000 # bullet gravity
+    fy = mConfig.GameConstant.gravity # bullet gravity
     # since we've zeroed @shot_charge when calling fire(), 
     # use stored @last_charge instead
     vel = @last_charge
@@ -196,7 +222,7 @@ class Player
       spec)
     
     @shost.bullets.push(bullet)
-    @shost.gcamera.follow(bullet.sprite)
+    #@shost.gcamera.follow(bullet.sprite)
 
   updateBullets: (dt) ->
     if @bulletQueue.length <= 0
@@ -213,7 +239,16 @@ class Player
         newQueue.push(newSpec)
     @bulletQueue = newQueue
 
+  recharge: (dt) ->
+    @cur_move_points += @move_recharge_rate * dt
+    if @cur_move_points > @max_move_points
+      @cur_move_points = @max_move_points
+    @cur_shot_points += @shot_recharge_rate * dt
+    if @cur_shot_points > @max_shot_points
+      @cur_shot_points = @max_shot_points
+
   update: (dt, world) ->
+    @recharge(dt)
 
     moved = @entity.update()
 
@@ -252,40 +287,8 @@ class Player
     @liveBulletsThisRound = @bulletQueue.length
     # It is up to update() to update the bulletQueue and spawn bullets
 
-    @can_fire = false
-    @last_charge = @shot_charge
-    @shot_charge = 0
-
-  """
-  fire: () ->
-    if !@can_fire
-      return
-    #console.log 'FIRE AWAY!'
-
-    bullet = new mBullet.Bullet.Bullet(@shost)
-    rorg = @reticule.getOrigin()
-
-    dirSign = 1
-    angle = @reticule.aimAngle
-    if @facingLeft
-      dirSign = -1
-      angle = 180 - @reticule.aimAngle
-
-    # XXX affected by wind, etc
-    fx = 0
-    fy = 9000 # bullet gravity
-    bullet.collisionRadiusPx = 20
-    bullet.explosionRadiusPx = 60
-    vel = @shot_charge
-    bullet.initialize(this, @getX() + dirSign *rorg[0], @getY() + rorg[1], vel, angle, fx, fy, 0.4, 0)
-    
-    @shost.bullets.push(bullet)
-    @shost.gcamera.follow(bullet.sprite)
-
-    @can_fire = false
-    @last_charge = @shot_charge
-    @shot_charge = 0
-  """
+    @last_charge = @cur_charge
+    @cur_charge = 0
 
   # ============================================================================
   #                           MOVEMENT AND FALLING
@@ -337,49 +340,15 @@ class Player
     @reticule.changeDirection(faceLeft)
     @reticule.update(@sprite.x, @sprite.y)
 
-  initTurn: ->
-    if !@active
-      return
-    console.log @getX()
-    console.log @getY()
-    @cur_movement = 0
-    @can_fire = true
-    @shot_charge = 0
-
   hasAliveBullets: () ->
     if @liveBulletsThisRound > 0
       return true
     return false
-    """
-    for bullet in @shost.bullets
-      if bullet.player == this
-        return true
-    return false
-    """
-
-  # When a bullet dies, it will try to end the player's turn.  If the bullet is
-  # the last bullet left belonging to the player, then it should end turn,
-  # otherwise it shouldn't
-  tryBulletEndTurn: () ->
-    @liveBulletsThisRound -= 1
-    if !@hasAliveBullets()
-      @endTurn()
-
-  endTurn: (died=false)->
-    if !@active
-      return
-    @active = false
-    @shost.tryEndPlayerTurn(died)
-    @can_fire = false
 
   moveLeft: (dt, world) ->
-    if !@can_fire
-      return
     @move(dt, world, true)
 
   moveRight: (dt, world) ->
-    if !@can_fire
-      return
     @move(dt, world, false)
 
   move: (dt, world, isLeft=false) ->
@@ -396,15 +365,18 @@ class Player
 
     # First check that the player still has remaning "movement points"
     # in his turn.  If not, don't allow moving.
-    allowable_dist = @max_movement - @cur_movement
-    if allowable_dist <= 0
+    if @cur_move_points <= 0
       return
 
     # If this move will exhaust remaining "movement points", cap it to remaining
     # movement
-    try_dist = @speed * dt
-    if try_dist > allowable_dist
-      try_dist = allowable_dist
+    spend_move_points = @move_deplete_rate * dt
+    if spend_move_points > @cur_move_points
+      spend_move_points = @cur_move_points
+
+    try_dist = spend_move_points / @move_deplete_rate * @speed
+    if try_dist <= 0
+      return
 
     # =======================================================
     # First try our side checks.
@@ -460,9 +432,8 @@ class Player
       else
         actual_dist = 0
 
-    @cur_movement += actual_dist
-    # XXX implement this:
-    #@cur_movement += actual_walked_dist
+    if actual_dist != 0
+      @cur_move_points -= spend_move_points
     @setX(@getX() + actual_dist * dirSign)
     @reticule.update(@sprite.x, @sprite.y)
     @nametext.x = @sprite.x + @nameoffX
@@ -487,7 +458,6 @@ class Player
 
   showUI: () ->
     @reticule.sprite.visible = true
-
 
 class PlayerSprite extends Phaser.Sprite
   

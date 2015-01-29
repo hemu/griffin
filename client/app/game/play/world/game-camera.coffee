@@ -123,7 +123,7 @@ class GameCamera
     @following = asprite
     @restoreFollowing = null
     @shost.game.camera.follow(asprite)
-    @setDeadzone(mConfig.GameConstant.cameraDeadzoneTiles)
+    @setDeadzone(mConfig.GameConstant.cameraDeadzoneY)
 
   restoreFollow: () ->
     if @playerMove
@@ -136,12 +136,12 @@ class GameCamera
     @restoreFollowing = null
     @forceDetach = false
 
-  setDeadzone: (tiles) ->
+  setDeadzone: (height) ->
     @shost.game.camera.deadzone = new Phaser.Rectangle(
-      @shost.game.stage.bounds.width / tiles,
-      @shost.game.stage.bounds.height / tiles,
-      @shost.game.stage.bounds.width * (tiles-2)/tiles,
-      @shost.game.stage.bounds.height * (tiles-2)/tiles
+      @shost.game.stage.bounds.width / 2,
+      @shost.game.stage.bounds.height / 2 - height/2,
+      1,
+      height
       )
 
   unfollow:() ->

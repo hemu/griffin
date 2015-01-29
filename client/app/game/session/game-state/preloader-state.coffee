@@ -18,22 +18,25 @@ class PreloaderState extends Phaser.State
     @game.load.bitmapFont("rednum", @getAssetPath("rednumbers.png"), @getAssetPath("rednumbers.fnt"))
 
     @game.load.image("logo", @getAssetPath("phaser.png"))
-    @game.load.image("player", @getAssetPath("player.png"))
+    @game.load.image("player", @getAssetPath("player_dev.png"))
     @game.load.image("reticule", @getAssetPath("reticule.png"))
 
     # explosives and stuff
     @game.load.image("bullet", @getAssetPath("bullet.png"))
+    @game.load.image("tbullet", @getAssetPath("teleport_bullet.png"))
     @game.load.image("missile1", @getAssetPath("missile1.png"))
-    @game.load.image("explosion", @getAssetPath("explosion.png"))
+    @game.load.image("explosion", @getAssetPath("explosion_flat.png"))
     @game.load.image("spark", @getAssetPath("spark.png"))
+    @game.load.image("spark_blue", @getAssetPath("spark_blue.png"))
     @game.load.image("glow", @getAssetPath("glow.png"))
     @game.load.image("ring", @getAssetPath("ring.png"))
     @game.load.image("flare", @getAssetPath("flare.png"))
     @game.load.image("pebble", @getAssetPath("pebble.png"))
-    @game.load.image("smoke", @getAssetPath("smoke.png"))
+    @game.load.image("smoke", @getAssetPath("smoke_flat.png"))
 
     #@game.load.image("ground", @getAssetPath("ground.png"))
-    @game.load.image("world_bridge", @getAssetPath("world_bridge.png"))
+    #@game.load.image("world_bridge", @getAssetPath("world_bridge.png"))
+    @game.load.image("world_divide", @getAssetPath("world_divide.png"))
     @game.load.image("background", @getAssetPath("background.png"))
     @game.load.image("health", @getAssetPath("health.png"))
     @game.load.image("healthbar", @getAssetPath("healthbar.png"))
@@ -48,6 +51,9 @@ class PreloaderState extends Phaser.State
     @game.load.spritesheet("buttonchoose", 
         @getAssetPath("buttonchoose_sheet.png"),
         119, 119)
+
+    # enables debugging phaser FPS performance
+    @game.time.advancedTiming = true
 
   create: ->
     @startMainMenu()

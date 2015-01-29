@@ -24,7 +24,7 @@ class SessionController
     # TODO: managing @phaserClient and states should prob be
     # done by some other helper objs
     # XXX: right now states just kick off other states
-    @phaserClient = new Phaser.Game(800, 600, Phaser.CANVAS, "phaserGameCanvas")
+    @phaserClient = new Phaser.Game(1024, 640, Phaser.CANVAS, "phaserGameCanvas")
     @phaserClient.state.add 'Boot', new mState.boot.BootState, false
     @phaserClient.state.add 'Preloader', new mState.preloader.PreloaderState, false
     @phaserClient.state.add 'MainMenu', new mState.menu.MainMenuState, false
@@ -55,7 +55,7 @@ class SessionController
     @phaserClient.state.start "Play", true, false, initConfig, this
 
   changeTurn: (turnConfig) ->
-    #console.log turnConfig['tid']
+    console.log turnConfig['tid']
     playController = @playState.playController
     playController.changeTurn(turnConfig)
 

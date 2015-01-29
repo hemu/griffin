@@ -13,43 +13,32 @@ class ExplosionFactory
     # ============================
     # Explosion blast
     numBlasts = 1
-    blastLifetimeMs = 1000
+    blastLifetimeMs = 900
     blastAEmitter = game.add.emitter(x, y, numBlasts)
     blastAEmitter.blendMode = Phaser.blendModes.NORMAL
     blastAEmitter.makeParticles('explosion')
     blastAEmitter.gravity = 0
-    blastAEmitter.setXSpeed(-60*scale, 60*scale)
-    blastAEmitter.setYSpeed(-20*scale, -40*scale)
-    blastAEmitter.setAlpha(1.0, 0, blastLifetimeMs, Phaser.Easing.Linear.In)
-    blastAEmitter.setScale(1.6*scale, 2.0*scale, 1.6*scale, 2.0*scale, 
+    blastAEmitter.setXSpeed(-25*scale, 25*scale)
+    blastAEmitter.setYSpeed(-10*scale, -25*scale)
+    blastAEmitter.setAlpha(1.0, 0, blastLifetimeMs, Phaser.Easing.Quintic.In)
+    blastAEmitter.setScale(0.8*scale, 1.6*scale, 0.8*scale, 1.6*scale, 
         blastLifetimeMs, Phaser.Easing.Linear.In)
+    blastAEmitter.setRotation(400, 600)
     # explode, lifespan (ms), frequency, quantity, forceQuantity
     blastAEmitter.start(false, blastLifetimeMs, 60, numBlasts)
 
-    blastEmitter = game.add.emitter(x, y, numBlasts)
-    blastEmitter.blendMode = Phaser.blendModes.ADD
-    blastEmitter.makeParticles('explosion')
-    blastEmitter.gravity = -80*scale
-    blastEmitter.setXSpeed(-60*scale, 60*scale)
-    blastEmitter.setYSpeed(-20*scale, -40*scale)
-    blastEmitter.setAlpha(0.8, 0, blastLifetimeMs, Phaser.Easing.Linear.In)
-    blastEmitter.setScale(1.6*scale, 2.0*scale, 1.6*scale, 2.0*scale, 
-        blastLifetimeMs, Phaser.Easing.Linear.In)
-    # explode, lifespan (ms), frequency, quantity, forceQuantity
-    blastEmitter.start(false, blastLifetimeMs, 60, numBlasts)
-
-    return [blastAEmitter, blastEmitter]
+    return [blastAEmitter]
 
   # Flying sparks exploding from a single point
-  @createSparksBasic: (game, x, y, scale=1) ->
+  @createSparksBasic: (game, x, y, scale=1, sprite='spark') ->
     numSparks = 32*scale
     sparkLifetimeMs = 1200
     sparkEmitter = game.add.emitter(x, y, numSparks)
     sparkEmitter.blendMode = Phaser.blendModes.ADD
-    sparkEmitter.makeParticles('spark')
+    sparkEmitter.makeParticles(sprite)
     sparkEmitter.gravity = 300*scale
-    sparkEmitter.setXSpeed(-200*scale, 200*scale)
-    sparkEmitter.setYSpeed(-300*scale, 100*scale)
+    sparkEmitter.setXSpeed(-160*scale, 160*scale)
+    sparkEmitter.setYSpeed(-240*scale, 80*scale)
     sparkEmitter.setAlpha(1, 0.1, sparkLifetimeMs, Phaser.Easing.Quintic.In)
     sparkEmitter.setScale(1.2*scale, 0.6*scale, 1.2*scale, 0.6*scale, 
         sparkLifetimeMs, Phaser.Easing.Quintic.In)
@@ -136,17 +125,22 @@ class ExplosionFactory
 
     return [pebbleEmitter]
 
-  @createSmokeTrailBasic: (game, x, y, scale=1) ->
-    numSmoke = 30
-    smokeLifetimeMs = 1600
+  @createSmokeTrailBasic: (game, x, y, scale=1, timescale=1, sprite='smoke', add=false) ->
+    numSmoke = 30 * timescale
+    smokeLifetimeMs = 1400 / timescale
     smokeEmitter = game.add.emitter(x, y, numSmoke)
-    smokeEmitter.makeParticles('smoke')
+    smokeEmitter.setSize(50*scale,50*scale)
+    smokeEmitter.makeParticles(sprite)
+    if add
+        smokeEmitter.blendMode = Phaser.blendModes.ADD
     smokeEmitter.gravity = -100*scale
-    smokeEmitter.setAlpha(0.6, 0, smokeLifetimeMs, Phaser.Easing.Linear.In)
-    smokeEmitter.setScale(0.4*scale, 1.0*scale, 0.4*scale, 1.0*scale, 
+    smokeEmitter.setXSpeed(-60*scale, 60*scale)
+    smokeEmitter.setYSpeed(-60*scale, 60*scale)
+    smokeEmitter.setAlpha(0.8, 0, smokeLifetimeMs, Phaser.Easing.Cubic.In)
+    smokeEmitter.setScale(0.5*scale, 1.0*scale, 0.5*scale, 1.0*scale, 
         smokeLifetimeMs, Phaser.Easing.Linear.In)
     # explode, lifespan (ms), frequency, quantity, forceQuantity
-    smokeEmitter.start(false, smokeLifetimeMs, 200, numSmoke)
+    smokeEmitter.start(false, smokeLifetimeMs, 180/timescale, numSmoke)
 
     return [smokeEmitter]
 

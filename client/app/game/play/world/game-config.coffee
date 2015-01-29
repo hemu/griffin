@@ -5,14 +5,14 @@ class GameConstant
 
   # time in seconds after player turn-ending move to end turn
   @endTurnWaitTime = 1.6
-  @turnTime = 15
-  @turnShowTime = 10
-  @turnWarnTime = 5
+  @turnTime = 600
+  @turnShowTime = 600
+  @turnWarnTime = 600
 
   # The base health for which healthbar scale.x = 1
   @healthBase = 100
 
-  @playerScale = 0.7
+  @playerScale = 0.4
 
   # When walking, how big a jump in Y in world terrain is too high
   # before you can't walk.
@@ -23,19 +23,21 @@ class GameConstant
   # Note that left and right movement should also share this same width
   # for spacing collision columns when detecting if player can move left 
   # or right 
-  @playerBaseCollisionTiles = 16
+  @playerBaseCollisionTiles = 12
   # How many neighboring tiles, to the left and right, to use the vertical
   # column of tiles to check whether right or left side is colliding with world
-  @playerSideCollisionStartY = 16
+  @playerSideCollisionStartY = 12
   # How long the vertical column of lateral collision checking tiles is
-  @playerSideCollisionTiles = 30
+  @playerSideCollisionTiles = 20
 
   # the Y position past which things die, such as players or bullets falling
   # to their death
   #@gameYBound = 2000
 
   # travel distance before bullet can collide with self
-  @bulletSelfHitDist = 30
+  @bulletSelfHitDist = 20
+
+  @gravity = 8000
 
   # ============================================================================
   # CAMERA
@@ -46,7 +48,7 @@ class GameConstant
   @cameraScale = 1
   # How many sections to split screen up to form deadzone with padding of
   # 1/cameraDeadzoneTiles to the left and right
-  @cameraDeadzoneTiles = 3
+  @cameraDeadzoneY = 100
   # For special Jolt camera effect, what's maximum jolt pixels
   @cameraJoltPx = 20
   # How fast the camera moves when player drags

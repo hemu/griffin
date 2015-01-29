@@ -35,5 +35,6 @@ class PlayState extends Phaser.State
 
   render: ->
     @playController.render()
+    @playController.game.debug.text(@playController.game.time.fps || '--', 2, 14, "#00ff00")
 
 exports.PlayState = PlayState

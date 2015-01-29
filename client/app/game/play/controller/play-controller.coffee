@@ -12,10 +12,9 @@ class PlayController
     
     @sessionId = null  # The player's secret session id, known only to him
     @players = []   # array of Player objects
-    @player_delays = {}  # dict of delays (value) where key is player id
     @bullets = []
     @active_player = null
-    @turn_time_remaining = 0
+    @game_time_remaining = 0
 
     # Add all sprites in play to this group so that the mUi.GameUI's group sits
     # on top of all of them
@@ -27,8 +26,6 @@ class PlayController
     # game camera
     @gcamera = null
 
-    # @endingTurn = false
-    @endTurnTimer = 0
     @gameOver = false
     @setState(State.INIT)
 
@@ -50,6 +47,8 @@ class PlayController
     # Setup background and world
     @playgroup = @game.add.group()
     @background = new Phaser.Sprite(@game, 0, 0, 'background')
+    # disable physics for background sprite
+    @background.body = null
     @playgroup.add(@background)
     @game.camera.scale.set(
       mConfig.GameConstant.cameraScale,
@@ -58,7 +57,7 @@ class PlayController
 
     # This is our own game logic World class, not to be confused with
     # Phaser's built in @game.world
-    @world = mWorld.WorldCreator.loadFromImage(this, 'world_bridge')
+    @world = mWorld.WorldCreator.loadFromImage(this, 'world_divide')
     @world.setSpawnOrder([2,0,1,3])
     # world will set bounds of the game, from that need to set background
     # scale to the max scale of world bounds
@@ -102,10 +101,9 @@ class PlayController
       player.setName(name)
       @players.push player
 
-      # for each player add a delay wait entry
-      @player_delays[id] = 0
-
       num_players++
+
+    @game_time_remaining = mConfig.GameConstant.turnTime
 
     # Disable player-to-player p2 body collisions.  For every pairing of 
     # players, disable collisions
@@ -121,12 +119,21 @@ class PlayController
 
     @gcamera = new mCam.GameCamera(this)
     @gcamera.initialize(1.0)
-    @endPlayerTurn()
+    @active_player = @players[0]
+    @active_player.active = true
+    @active_player.showUI()
+    @refreshUI()
+    @gcamera.follow(@active_player.sprite)
+    @gcamera.easeTo(@active_player.getX() - @game.width/2, @active_player.getY() - @game.height/2)
+
     mUi.GameUI.bringToTop()
     #@game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR).onDown.add(@playerFire, this)
     #@game.input.keyboard.addKey(Phaser.Keyboard.Z).onDown.add(@toggleZoom, this)
 
   changeTurn: (turnConfig) ->
+    console.log turnConfig
+    console.log 'MY SESSION ID'
+    console.log @sessionId
     activeId = turnConfig['tid']
     if @sessionId == activeId
       console.log 'MY TURN'
@@ -151,52 +158,35 @@ class PlayController
 
     @gcamera.update(dt)
 
-    if @turn_time_remaining > 0
-      oldtime = Math.floor(@turn_time_remaining)
-      @turn_time_remaining -= dt
-      newtime = Math.ceil(@turn_time_remaining)
+    if @game_time_remaining > 0
+      oldtime = Math.floor(@game_time_remaining)
+      @game_time_remaining -= dt
+      newtime = Math.ceil(@game_time_remaining)
       if oldtime != newtime
         mUi.GameUI.updateTurnTime(newtime)
-      if @turn_time_remaining <= 0
+      if @game_time_remaining <= 0
         mUi.GameUI.updateTurnTime(0)
-        # If time ran out but there is a bullet still alive, let the bullet
-        # end the player's turn upon its death
-        if @active_player != null
-          if !@active_player.hasAliveBullets()
-            @active_player.endTurn()
 
-    # if @endingTurn
-    if @getState() == State.REACT
-      @endTurnTimer -= dt
-      # XXX In future, need to also check if all players and bullets have 
-      # stopped moving before ending turn
-      if @endTurnTimer <= 0
-        # @endingTurn = false
-        @endTurnTimer = 0
-        @endPlayerTurn()
+    if @active_player == null
       return
 
     mInput.GameInput.update(dt)
 
-  testExplosion: ->
-    x = @game.input.activePointer.worldX
-    y = @game.input.activePointer.worldY
-    ExplosionFactory.createPebbleBasic(@game, x, y)
-    #ExplosionFactory.createExplosionBasic(@game, x, y)
-    null
+    mUi.GameUI.updateMoveBar(
+      @active_player.cur_move_points / @active_player.max_move_points)
+    mUi.GameUI.updateShotBar(
+      @active_player.cur_shot_points / @active_player.max_shot_points)
 
   render: ->
     @world.render()
 
   playerMoveLeft: (dt) ->
+    @gcamera.follow(@active_player.sprite)
     @active_player.moveLeft(dt, @world)
-    mUi.GameUI.updateMoveBar(
-      1.0 - @active_player.cur_movement / @active_player.max_movement)
 
   playerMoveRight: (dt) ->
+    @gcamera.follow(@active_player.sprite)
     @active_player.moveRight(dt, @world)
-    mUi.GameUI.updateMoveBar(
-      1.0 - @active_player.cur_movement / @active_player.max_movement)
 
   playerAimUp: (dt) ->
     @active_player.aimUp(dt)
@@ -206,11 +196,15 @@ class PlayController
 
   playerChargeShot: (dt) ->
     @active_player.chargeShot(dt)
-    mUi.GameUI.updateShotBar(
-      @active_player.shot_charge / @active_player.max_shot_charge)
+    mUi.GameUI.updateChargeBar(
+      @active_player.cur_charge / @active_player.max_charge)
 
   playerFire: ->
     @active_player.fire()
+    mUi.GameUI.updateChargeBar(0)
+    mUi.GameUI.refreshChargeSave(@active_player.last_charge / @active_player.max_charge)
+    mInput.GameInput.spaceIsDown = false
+    mUi.GameUI.refreshWeaponUI(@active_player.wep_num)
 
   playerMoveCamera: (x, y) ->
     @gcamera.playerMoveCamera(x, y)
@@ -227,56 +221,11 @@ class PlayController
       return
     @active_player.setWeapon(num)
 
-  tryEndPlayerTurn: (died=false) ->
-    if @active_player == null
-      return
-
-    if died
-      @removePlayer(@active_player)
-    else
-      @player_delays[@active_player.id] += 100
-      @active_player.active = false
-
-    @active_player = null
-    # Kick off variable and timer to start end turn countdown
-    @setState(State.REACT)
-    # @endingTurn = true
-    @endTurnTimer = mConfig.GameConstant.endTurnWaitTime
-
-  endPlayerTurn: ->
-    @setState(State.CLEANUP)
-    next_player_id = -1
-    min_delay = 99999
-
-    for id, delay of @player_delays
-      if delay < min_delay
-        min_delay = delay
-        next_player_id = id
-
-    # Note to self:
-    # don't clear next_player_id's delay!  Should be cumulative thru turns
-    for player in @players
-      player.hideUI()   # hides aiming device, UI displays, etc
-      if player.id == next_player_id
-        @active_player = player
-        # XXX Will this reference the actual player, or a copy of it for the 
-        # loop?
-        @active_player.active = true
-        @active_player.showUI()
-        @active_player.initTurn()
-        @endTurnRefreshUI()
-
-    @gcamera.follow(@active_player.sprite)
-    @gcamera.easeTo(@active_player.getX() - @game.width/2, @active_player.getY() - @game.height/2)
-
-    mUi.GameUI.updateTurnText('Player ' + next_player_id + ' turn')
-    @turn_time_remaining = mConfig.GameConstant.turnTime
-
-  endTurnRefreshUI: ->
+  refreshUI: ->
     mUi.GameUI.updateMoveBar(
       1.0 - @active_player.cur_movement / @active_player.max_movement)
-    mUi.GameUI.updateShotBar(0)
-    mUi.GameUI.refreshShotSave(@active_player.last_charge / @active_player.max_shot_charge)
+    mUi.GameUI.updateChargeBar(0)
+    mUi.GameUI.refreshChargeSave(@active_player.last_charge / @active_player.max_shot_charge)
     mInput.GameInput.spaceIsDown = false
     mUi.GameUI.refreshWeaponUI(@active_player.wep_num)
 
@@ -295,13 +244,6 @@ class PlayController
       @gameOverText = new Phaser.Text(@game, 200, 200, 'Game Over')
       @gcamera.addFixedSprite(@gameOverText)
       return
-
-    # then remove player entry in delay queue
-    new_delays = {}
-    for id, delay of @player_delays
-      if id != removePlayer.id
-        new_delays[id] = delay
-    @player_delays = new_delays
 
   removeBullet: (removeBullet) ->
     remaining_bullets = []

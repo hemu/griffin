@@ -1,4 +1,5 @@
 mConfig = require 'world/game-config'
+mUi = require 'ui/game-ui'
 State = require 'controller/state'
 
 # worth considering if we will get a win later by separating into 
@@ -59,6 +60,12 @@ class GameInput
       @spaceKeyDown, this);
     @controller.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR).onUp.add(
       @spaceKeyUp, this)
+    @controller.game.input.keyboard.addKey(Phaser.Keyboard.ONE).onDown.add(
+      @key1Down, this)
+    @controller.game.input.keyboard.addKey(Phaser.Keyboard.TWO).onDown.add(
+      @key2Down, this)
+    @controller.game.input.keyboard.addKey(Phaser.Keyboard.THREE).onDown.add(
+      @key3Down, this)
 
   @leftMouseDown: () ->
     if mConfig.GameConstant.debug
@@ -112,5 +119,14 @@ class GameInput
     @spaceIsDown = false
     #console.log 'space key up'
     @controller.playerFire()
+
+  @key1Down: () ->
+    mUi.GameUI.refreshWeaponUI(0)
+
+  @key2Down: () ->
+    mUi.GameUI.refreshWeaponUI(1)
+
+  @key3Down: () ->
+    mUi.GameUI.refreshWeaponUI(2)
 
 exports.GameInput = GameInput

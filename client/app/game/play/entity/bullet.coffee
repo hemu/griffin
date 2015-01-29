@@ -14,30 +14,29 @@ class Bullet
     @scale = 1
     @rot = 0
 
-    # World collision detection and crater creation
-    # These are in pixels, so for collisions against world need to convert
-    # to tiles by dividing by world.tileSize
+    # Store the last position of the bullet so that when colliding at high 
+    # speeds with terrain, for example, can check the last non-colliding
+    # position of bullet to avoid getting stuck inside terrain.
+    @lastPos = [0,0]
+
+    # The bullet stats come from BulletSpecFactory, and are not populated
+    # in the constructor
     @collisionRadiusPx = 20
     @craterRadiusPx = 50
-    # Damage and explosion damage.  If a direct hit is achieved, the hit player
-    # gets directHitDamage applied, but is ignored in the explosion damage.
-    # All others hit by indirect explosionRadius will incur linearly decreasing
-    # explosionMaxDamage based on percentage distance from explosion center
     @directHitDamage = 33
-    # note that explosion radius is based on center of bullet to center of
-    # player, so need to add at least player sprite width/2 to account for
-    # that extra distance
     @explosionRadius = 70
     @explosionMaxDamage = 30
     @explosionMinDamage = 10
-    # how big the drawn explosion sprite is
-    @explosionGfxScale = 1
+    @isTeleport = false
 
+    # Draw members for Phaser
+    @explosionGfxScale = 1
     @particleStart = null
     @particleAttach = null
     # need to manually kill attached emitters when die
     @attachedEmitters = []
     @particleEnd = null
+    @teleportEnd = null
 
     @entity = null
 
@@ -87,14 +86,19 @@ class Bullet
     @particleStart = spec.particleStart
     @particleAttach = spec.particleAttach
     @particleEnd = spec.particleEnd
+    # teleportation
+    @isTeleport = spec.isTeleport
+    @teleportEnd = spec.teleportEnd
+    if @isTeleport
+      @sprite.blendMode = Phaser.blendModes.ADD
 
   update: (world) ->
 
-    old_pos = [@entity.x, @entity.y]
+    @lastPos = [@entity.x, @entity.y]
     @entity.update()
     new_pos = [@entity.x, @entity.y]
-    tx = new_pos[0] - old_pos[0]
-    ty = new_pos[1] - old_pos[1]
+    tx = new_pos[0] - @lastPos[0]
+    ty = new_pos[1] - @lastPos[1]
     traveled = Math.sqrt(tx*tx + ty*ty)
     @distance_traveled += traveled
     if !@canHitFirer
@@ -119,11 +123,14 @@ class Bullet
     doKillBullet = false
     spawnExplosion = false
     explosionIgnorePlayer = null
+    doTeleport = false
     damage = 0
 
     # ========================================
     # Player collisions
     for player in @shost.players
+      if @isTeleport
+        continue
       if @entity.collidesWithEntity(player.entity)
         # if hit firer and not yet past self damage distance traveled, continue
         if player == @player && !@canHitFirer
@@ -134,8 +141,8 @@ class Bullet
         doKillBullet = true
         explosionIgnorePlayer = player
         # also add a crater centered around bullet
-        tileX = mUtil.GameMath.clamp(world.xTileForWorld(@entity.x), 0, world.width-1)
-        tileY = mUtil.GameMath.clamp(world.yTileForWorld(@entity.y), 0, world.height-1)
+        tileX = mUtil.GameMath.clamp(world.xTileForWorld(@lastPos[0]), 0, world.width-1)
+        tileY = mUtil.GameMath.clamp(world.yTileForWorld(@lastPos[1]), 0, world.height-1)
         world.createCrater(tileX, tileY, @craterRadiusPx / world.tileSize)
         @shost.gcamera.jolt()
         break
@@ -147,19 +154,22 @@ class Bullet
       if mConfig.GameConstant.debug
         console.log 'Hit Ground'
 
-      @drawExplosion(@entity.x, @entity.y, true)
-      tileX = mUtil.GameMath.clamp(world.xTileForWorld(@entity.x), 0, world.width-1)
-      tileY = mUtil.GameMath.clamp(world.yTileForWorld(@entity.y), 0, world.height-1)
+      @drawExplosion(@lastPos[0], @lastPos[1], true)
+      tileX = mUtil.GameMath.clamp(world.xTileForWorld(@lastPos[0]), 0, world.width-1)
+      tileY = mUtil.GameMath.clamp(world.yTileForWorld(@lastPos[1]), 0, world.height-1)
       world.createCrater(tileX, tileY, @craterRadiusPx / world.tileSize)
       doKillBullet = true
       spawnExplosion = true
-      @shost.gcamera.jolt()
+      if @isTeleport
+        doTeleport = true
+      else
+        @shost.gcamera.jolt()
 
     # ========================================
     # Spawn explosion, if necessary, which damages players linearly from
     # its epicenter up to @explosionRadius
     if spawnExplosion
-      spawnPos = [@entity.x, @entity.y]
+      spawnPos = [@lastPos[0], @lastPos[1]]
       explosionRadiusSq = @explosionRadius * @explosionRadius
       for player in @shost.players
         if player==explosionIgnorePlayer
@@ -181,12 +191,15 @@ class Bullet
       else if @entity.x < @shost.world.gameXBoundL || @entity.x > @shost.world.gameXBoundR
         doKillBullet = true
 
+    if doTeleport
+      @teleportEnd(@player, @lastPos[0], @lastPos[1])
+      @shost.gcamera.center(@player.sprite)
+
     if doKillBullet
       if mConfig.GameConstant.debug
         console.log 'bullet died'
       @shost.removeBullet(this)
       @kill()
-      @player.tryBulletEndTurn()
 
   kill: () ->
     @sprite.destroy(true)
@@ -201,10 +214,13 @@ class Bullet
     @attachedEmitters = null
 
   drawExplosion: (x, y, hitGround) ->
-    @particleEnd(@shost.game, x, y, hitGround)
+    if @particleEnd != null
+      @particleEnd(@shost.game, x, y, hitGround)
 
 
 class BulletSpecFactory
+
+  @craterRadiusPx = 26
 
   # This is the basic bullet spec for the simplest bullet.  Other specs 
   # override its values if specified, otherwise will default back to this.
@@ -216,9 +232,9 @@ class BulletSpecFactory
     delay_in_volleys: 0,
     # bullet and damage
     bullet_image: 'bullet',
-    bullet_scale: 0.4,
-    collisionRadiusPx: 20,
-    craterRadiusPx: 50,
+    bullet_scale: 0.3,
+    collisionRadiusPx: 16,
+    craterRadiusPx: @craterRadiusPx,
     # Damage and explosion damage.  If a direct hit is achieved, the hit player
     # gets directHitDamage applied, but is ignored in the explosion damage.
     # All others hit by indirect explosionRadius will incur linearly decreasing
@@ -234,15 +250,20 @@ class BulletSpecFactory
     # at the start of bullet's life, and at the end
     # can also attach emitters for smoke trail effects
     particleStart: (game, x, y) -> 
-      em = mEffects.ExplosionFactory.createGlowBasic(game, x, y, 0.7, 0.3)
-      return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.8))
+      em = mEffects.ExplosionFactory.createGlowBasic(game, x, y, 0.3, 0.3)
+      return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.3))
     particleAttach: null,
     particleEnd: (game, x, y, hitground=false) -> 
       if hitground
-        em = mEffects.ExplosionFactory.createPebbleBasic(game, x, y, 1)
+        em = mEffects.ExplosionFactory.createPebbleBasic(game, x, y, 0.5)
       else
-        em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 1)
-      return em.concat(mEffects.ExplosionFactory.createExplosionBasic(game, x, y, 1))
+        em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.6)
+      return em.concat(mEffects.ExplosionFactory.createExplosionBasic(game, x, y, 0.6))
+    # These are special bullet types, e.g., teleportation
+    isTeleport: false,
+    teleportEnd: (player, x, y) ->
+      player.setX(x)
+      player.setY(y)
   }
 
   @allSpecs = {
@@ -255,11 +276,11 @@ class BulletSpecFactory
       bullets_per_volley: 1,    # total shots: 1
       # bullet and damage
       bullet_image: 'bullet',
-      bullet_scale: 0.4,
-      collisionRadiusPx: 20,
-      craterRadiusPx: 50,
+      bullet_scale: 0.3,
+      collisionRadiusPx: 16,
+      craterRadiusPx: @craterRadiusPx,
       directHitDamage: 33,      # max:    33
-      explosionRadius: 80,
+      explosionRadius: 70,
       explosionMaxDamage: 30,   # splash: 30 - 10
       explosionMinDamage: 10
     },
@@ -274,24 +295,43 @@ class BulletSpecFactory
       delay_in_volleys: 0.25,
       # bullet and damage
       bullet_image: 'missile1',
-      bullet_scale: 0.4,
-      collisionRadiusPx: 20,
-      craterRadiusPx: 36,
+      bullet_scale: 0.3,
+      collisionRadiusPx: 16,
+      craterRadiusPx: 20,
       directHitDamage: 13,      # max: 52
       explosionRadius: 60,
       explosionMaxDamage: 8,   # splash: 32 - 24
-      explosionMinDamage: 6,
+      explosionMinDamage: 5,
       particleStart: (game, x, y) -> 
-        em = mEffects.ExplosionFactory.createGlowBasic(game, x, y, 0.4, 0.1)
-        return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.5))
+        em = mEffects.ExplosionFactory.createGlowBasic(game, x, y, 0.2, 0.1)
+        return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.3))
       particleAttach: (game, x, y) ->
-        return mEffects.ExplosionFactory.createSmokeTrailBasic(game, x, y, 0.6)
+        return mEffects.ExplosionFactory.createSmokeTrailBasic(game, x, y, 0.3, 1.8)
       particleEnd: (game, x, y, hitground=false) ->
         if hitground
-          em = mEffects.ExplosionFactory.createPebbleBasic(game, x, y, 0.7)
+          em = mEffects.ExplosionFactory.createPebbleBasic(game, x, y, 0.5)
         else
-          em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.7)
-        return em.concat(mEffects.ExplosionFactory.createExplosionBasic(game, x, y, 0.7))
+          em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.6)
+        return em.concat(mEffects.ExplosionFactory.createExplosionBasic(game, x, y, 0.5))
+    },
+    # TELEPORTATION
+    "2": {
+      bullet_image: 'tbullet',
+      bullet_scale: 0.4,
+      collisionRadiusPx: 10,
+      craterRadiusPx: 0,
+      directHitDamage: 0,
+      explosionRadius: 0,
+      explosionMaxDamage: 0,
+      explosionMinDamage: 0,
+      particleStart: (game, x, y) -> 
+        em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.4)
+        return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.4, 'spark_blue'))
+      particleAttach: (game, x, y) ->
+        return mEffects.ExplosionFactory.createSmokeTrailBasic(game, x, y, 0.6, 4.0, 'spark_blue', true)
+      # These are special bullet types, e.g., teleportation
+      isTeleport: true,
+      particleEnd: null
     }
   }
 
@@ -325,7 +365,9 @@ class BulletSpecFactory
             explosionMinDamage: wep.explosionMinDamage,
             particleStart: wep.particleStart,
             particleAttach: wep.particleAttach,
-            particleEnd: wep.particleEnd
+            particleEnd: wep.particleEnd,
+            isTeleport: wep.isTeleport,
+            teleportEnd: wep.teleportEnd
           }
         })
 
