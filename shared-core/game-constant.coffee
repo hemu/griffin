@@ -1,4 +1,4 @@
 GameConst =
-  TURN_LENGTH: 600
+  TURN_LENGTH: 20
 
 module.exports = GameConst
