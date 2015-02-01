@@ -108,6 +108,8 @@ class World
     # creating craters
     @dirty = false
 
+    @initBackground()
+
     @bmp = @shost.game.make.bitmapData(@width*@tileSize, @height*@tileSize)
     @sprite = new Phaser.Sprite(@shost.game, 0, 0, @bmp)
     #@sprite.inputEnabled = true
@@ -278,6 +280,36 @@ class World
     @bmp.ctx.clearRect(@tileSize * x, @tileSize * y, @tileSize, @tileSize)
     @bmp.ctx.fillStyle = color
     @bmp.ctx.fillRect(@tileSize * x, @tileSize * y, @tileSize, @tileSize)
+
+  # GRAPHICAL BACKGROUND INITIALIZATION
+  # This stuff only applies to client Phaser state, and is the background and 
+  # midground parallax effects
+
+  initBackground: ->
+    @bggroup = @shost.game.add.group()
+
+    @background = new Phaser.Sprite(@shost.game, 0, 0, 'background')
+    # disable physics for background sprite
+    @background.body = null
+    @background.fixedToCamera = true
+    bgX = @shost.game.stage.bounds.width / @background.width \
+    / mConfig.GameConstant.cameraScale * mConfig.GameConstant.backgroundImageScale
+    bgY = @shost.game.stage.bounds.height / @background.height \
+    / mConfig.GameConstant.cameraScale * mConfig.GameConstant.backgroundImageScale
+    @background.scale.set(bgX, bgY)
+    @bggroup.add(@background)
+
+    @mggroup = @shost.game.add.group()
+    @mggroup.fixedToCamera = true
+    cloud_pos = [[300, 300, 1.4], [800, 500, 1.7], [1300,120, 1.5]]
+    for pos in cloud_pos
+      cloud = new Phaser.Sprite(@shost.game, pos[0], pos[1], 'cloud1')
+      cloud.body = null
+      #cloud.fixedToCamera = true
+      cloud.scale.set(pos[2], pos[2])
+      cloud.alpha = 0.8
+      @mggroup.add(cloud)
+
 
 # don't need to export World, only WorldCreator
 # in effect keeping World private and forcing external

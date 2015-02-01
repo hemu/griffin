@@ -53,5 +53,8 @@ class GameConstant
   @cameraJoltPx = 20
   # How fast the camera moves when player drags
   @cameraDragRate = 1.5
+  # The background image is larger than the camera zone for the parallax effect
+  @backgroundImageScale = 1.5
+  @midgroundImageScale = 1.9
 
 exports.GameConstant = GameConstant

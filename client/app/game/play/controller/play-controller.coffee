@@ -44,26 +44,22 @@ class PlayController
     # for particle physics
     @game.physics.startSystem(Phaser.Physics.ARCADE)
 
-    # Setup background and world
-    @playgroup = @game.add.group()
-    @background = new Phaser.Sprite(@game, 0, 0, 'background')
-    # disable physics for background sprite
-    @background.body = null
-    @playgroup.add(@background)
     @game.camera.scale.set(
       mConfig.GameConstant.cameraScale,
       mConfig.GameConstant.cameraScale
       )
 
+    # Almost all of the sprites in game go in here, besides the background
+    # image and midground graphics, and the ui
+    @playgroup = @game.add.group()
+
+    # Setup world
     # This is our own game logic World class, not to be confused with
     # Phaser's built in @game.world
     @world = mWorld.WorldCreator.loadFromImage(this, 'world_divide')
     @world.setSpawnOrder([2,0,1,3])
-    # world will set bounds of the game, from that need to set background
-    # scale to the max scale of world bounds
-    bgX = @game.world.width / @background.width / mConfig.GameConstant.cameraScale
-    bgY = @game.world.height / @background.height / mConfig.GameConstant.cameraScale
-    @background.scale.set(bgX, bgY)
+
+    @game.world.bringToTop(@playgroup)
 
     # This is the p2 physics simulated world, which is where the
     # physics representations of the players and bullets etclive.

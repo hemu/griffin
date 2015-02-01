@@ -33,6 +33,18 @@ class GameCamera
                        # as if it's trying to move past world bounds
     @lastXYSameCount = 0
 
+    # camera parallax effect
+    @camMaxX = @shost.game.world.width - @shost.game.camera.width
+    @bgMaxMoveX = (mConfig.GameConstant.backgroundImageScale - 1.0) * \
+    @shost.game.stage.bounds.width
+    @mgMaxMoveX = (mConfig.GameConstant.midgroundImageScale - 1.0) * \
+    @shost.game.stage.bounds.width
+    @camMaxY = @shost.game.world.height - @shost.game.camera.height
+    @bgMaxMoveY = (mConfig.GameConstant.backgroundImageScale - 1.0) * \
+    @shost.game.stage.bounds.height
+    @mgMaxMoveY = (mConfig.GameConstant.midgroundImageScale - 1.0) * \
+    @shost.game.stage.bounds.height
+
   # XXX Camera zoom is broken in Phaser and with any scale that isn't 1, 
   # produces weird scaled movement, so zooming is currently disallowed
   setZoom: (amt) ->
@@ -158,6 +170,15 @@ class GameCamera
       @unfollow()
 
   update: (dt) ->
+
+    # updates the background image to provide parallax effect
+    camXFactor = @shost.game.camera.x / @camMaxX
+    camYFactor = @shost.game.camera.y / @camMaxY
+    @shost.world.background.cameraOffset.x = -@bgMaxMoveX * camXFactor
+    @shost.world.background.cameraOffset.y = -@bgMaxMoveY * camYFactor
+    @shost.world.mggroup.cameraOffset.x = -@mgMaxMoveX * camXFactor
+    @shost.world.mggroup.cameraOffset.y = -@mgMaxMoveY * camYFactor
+
     if @playerMove
       return
 
