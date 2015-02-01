@@ -28,7 +28,7 @@ class WorldCreator
       b: parseInt(result[3], 16)
     else null)
 
-  @loadFromImage: (shost, map_name) ->
+  @loadFromImage: (shost, map_name, client=false) ->
 
     # XXX need to decouple this image loading from phaser
     img = shost.game.cache.getImage(map_name)
@@ -46,7 +46,11 @@ class WorldCreator
 
     pixelData = canvas.getContext('2d').getImageData(0, 0, img.width, img.height).data
 
-    world = new World(shost, img.width, img.height)
+    if client
+      world = new WorldClient(shost, img.width, img.height)
+    else
+      world = new WorldCore(shost, img.width, img.height)
+    world.createSurroundingSpace()
 
     for y in [0..img.height-1]
       for x in [0..img.width-1]
@@ -64,7 +68,7 @@ class WorldCreator
     world.render(true)
     return world
 
-class World
+class WorldCore
 
   isAir: (rgbaStr) ->
     alpha = WorldCreator.rgbaFromString(rgbaStr)[3]
@@ -108,18 +112,11 @@ class World
     # creating craters
     @dirty = false
 
-    @initBackground()
-
+    
+    # XXX Need to decouple this from phaser
     @bmp = @shost.game.make.bitmapData(@width*@tileSize, @height*@tileSize)
-    @sprite = new Phaser.Sprite(@shost.game, 0, 0, @bmp)
-    #@sprite.inputEnabled = true
-    @sprite.body = null
-    #@sprite.events.onInputDown.add(() =>
-    #console.log('sprite input Down'))
-    @shost.playgroup.add(@sprite)
+    
     @render(true)
-
-    @createSurroundingSpace()
 
   addSpawnPoint: (x, y) ->
     @spawnPoints.push([
@@ -167,6 +164,8 @@ class World
     # However, we want there to be empty air to both sides of it, and
     # above and below, so as to give the camera space to move.
 
+    console.log 'CREATE SURROUNDING SPACE CORE'
+
     playWidthPx = @width * @tileSize
     playHeightPx = @height * @tileSize
 
@@ -174,38 +173,14 @@ class World
     topPaddingPx = playHeightPx * 0.3
     botPaddingPx = playHeightPx * 0.3
 
-    @shost.game.world.setBounds(
-      0, 
-      0, 
-      (playWidthPx + horzPaddingPx*2) * mConfig.GameConstant.cameraScale, 
-      (playHeightPx + topPaddingPx + botPaddingPx) * mConfig.GameConstant.cameraScale)
-
     @gameXBoundL = 0 - 40 # add a few more for good measure so things disappear outside camera
     @gameXBoundR = (playWidthPx + horzPaddingPx*2) * mConfig.GameConstant.cameraScale + 40
     @gameYBound = (playHeightPx + topPaddingPx + botPaddingPx) * mConfig.GameConstant.cameraScale
     @gameYBound += 160  # add a few more for good measure so things disappear
                         # outside of camera
 
-    console.log 'bounds should be ' 
-    console.log playWidthPx + horzPaddingPx*2
-    console.log playHeightPx + topPaddingPx + botPaddingPx
-
     @offX = horzPaddingPx / @tileSize
     @offY = topPaddingPx / @tileSize
-    @sprite.x = horzPaddingPx
-    @sprite.y = topPaddingPx
-
-  testClickGround: () ->
-    # For testing, mouse clicks destroy ground
-    if @sprite.input.pointerDown()
-      tileX = @tileForWorld(@sprite.input.pointerX())
-      tileY = @tileForWorld(@sprite.input.pointerY())
-      @handleClick(tileX, tileY)
-    else if @sprite.input.pointerDown(1)
-      # needed for touch events
-      tileX = @tileForWorld(@sprite.input.pointerX(1))
-      tileY = @tileForWorld(@sprite.input.pointerY(1))
-      @handleClick(tileX, tileY)
 
   createCrater: (tileX, tileY, radius) ->
     for x in [-radius..radius]
@@ -281,10 +256,56 @@ class World
     @bmp.ctx.fillStyle = color
     @bmp.ctx.fillRect(@tileSize * x, @tileSize * y, @tileSize, @tileSize)
 
+class WorldClient extends WorldCore
+
+  constructor: (@shost, @width, @height, @tileSize=2) ->
+    super @shost, @width, @height, @tileSize
+
+    @sprite = new Phaser.Sprite(@shost.game, 0, 0, @bmp)
+    @sprite.body = null
+    @shost.playgroup.add(@sprite)
+
+    @initBackground()
+
+  createSurroundingSpace: () ->
+    super
+
+    # XXX This is bad, code is duplicated from WorldCore
+    playWidthPx = @width * @tileSize
+    playHeightPx = @height * @tileSize
+
+    horzPaddingPx = playWidthPx / 4
+    topPaddingPx = playHeightPx * 0.3
+    botPaddingPx = playHeightPx * 0.3
+
+    @shost.game.world.setBounds(
+      0, 
+      0, 
+      (playWidthPx + horzPaddingPx*2) * mConfig.GameConstant.cameraScale, 
+      (playHeightPx + topPaddingPx + botPaddingPx) * mConfig.GameConstant.cameraScale)
+
+    console.log 'bounds should be ' 
+    console.log playWidthPx + horzPaddingPx*2
+    console.log playHeightPx + topPaddingPx + botPaddingPx
+
+    @sprite.x = horzPaddingPx
+    @sprite.y = topPaddingPx
+
+  testClickGround: () ->
+    # For testing, mouse clicks destroy ground
+    if @sprite.input.pointerDown()
+      tileX = @tileForWorld(@sprite.input.pointerX())
+      tileY = @tileForWorld(@sprite.input.pointerY())
+      @handleClick(tileX, tileY)
+    else if @sprite.input.pointerDown(1)
+      # needed for touch events
+      tileX = @tileForWorld(@sprite.input.pointerX(1))
+      tileY = @tileForWorld(@sprite.input.pointerY(1))
+      @handleClick(tileX, tileY)
+
   # GRAPHICAL BACKGROUND INITIALIZATION
   # This stuff only applies to client Phaser state, and is the background and 
   # midground parallax effects
-
   initBackground: ->
     @bggroup = @shost.game.add.group()
 

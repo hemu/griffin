@@ -3,17 +3,13 @@ mUtil = require 'util/game-util'
 mEffects = require 'world/game-effects'
 mEntity = require 'entity/entity'
 
-class Bullet
-
+class BulletCore
   constructor: (@shost) ->
-
+    @entity = null
     @player = null  # player whom bullet belongs to
-
-    @sprite = null
-
     @scale = 1
-    @rot = 0
-
+    @distance_traveled = 0
+    @canHitFirer = false
     # Store the last position of the bullet so that when colliding at high 
     # speeds with terrain, for example, can check the last non-colliding
     # position of bullet to avoid getting stuck inside terrain.
@@ -28,27 +24,16 @@ class Bullet
     @explosionMaxDamage = 30
     @explosionMinDamage = 10
     @isTeleport = false
-
-    # Draw members for Phaser
-    @explosionGfxScale = 1
-    @particleStart = null
-    @particleAttach = null
-    # need to manually kill attached emitters when die
-    @attachedEmitters = []
-    @particleEnd = null
     @teleportEnd = null
 
-    @entity = null
-
-    @distance_traveled = 0
-    @canHitFirer = false
-
-  initialize: (@player, x, y, velocity, angle, @fx, @fy, spec) ->
-
+  initialize: (@player, x, y, velocity, angle, @fx, @fy, spec, client=false) ->
     @scale = spec.bullet_scale
     @collisionRadiusPx = spec.collisionRadiusPx
+    if client
+      @entity = new mEntity.EntityClient(@shost)
+    else
+      @entity = new mEntity.EntityCore(@shost)
 
-    @entity = new mEntity.Entity(@shost)
     @entity.initialize(x, y, @collisionRadiusPx*2*@scale, @collisionRadiusPx*2*@scale, 0, 0)
     @shost.p2world.addBody(@entity.p2body)
     @entity.p2body.velocity[0] = velocity * Math.cos(mUtil.GameMath.deg2rad(angle))
@@ -57,43 +42,18 @@ class Bullet
 
     @initFromSpec(spec)
 
-    if mConfig.GameConstant.debug
-      @entity.initPreviz(@shost.game)
-
-    if @particleStart != null
-      @particleStart(@shost.game, x, y)
-
-    if @particleAttach != null
-      @attachedEmitters = @particleAttach(@shost.game, x, y)
-
   initFromSpec: (spec) ->
-
-    @sprite = new Phaser.Sprite(@shost.game, 0, 0, spec.bullet_image)
-    @sprite.anchor =
-      x: 0.5
-      y: 0.5
-    @sprite.scale.x = @scale
-    @sprite.scale.y = @scale
-    @shost.playgroup.add(@sprite)
-
     @collisionRadiusPx = spec.collisionRadiusPx
     @craterRadiusPx = spec.craterRadiusPx
     @directHitDamage = spec.directHitDamage
     @explosionRadius = spec.explosionRadius
     @explosionMaxDamage = spec.explosionMaxDamage
     @explosionMinDamage = spec.explosionMinDamage
-    @explosionGfxScale = spec.explosionGfxScale
-    @particleStart = spec.particleStart
-    @particleAttach = spec.particleAttach
-    @particleEnd = spec.particleEnd
     # teleportation
     @isTeleport = spec.isTeleport
     @teleportEnd = spec.teleportEnd
-    if @isTeleport
-      @sprite.blendMode = Phaser.blendModes.ADD
 
   update: (world) ->
-
     @lastPos = [@entity.x, @entity.y]
     @entity.update()
     new_pos = [@entity.x, @entity.y]
@@ -105,25 +65,11 @@ class Bullet
       if @distance_traveled > mConfig.GameConstant.bulletSelfHitDist
         @canHitFirer = true
 
-    # update the sprite to the ground truth simulated position
-    @sprite.x = @entity.x
-    @sprite.y = @entity.y
-    # Update any attached emitters
-    for emitter in @attachedEmitters
-      emitter.x = @entity.x
-      emitter.y = @entity.y
-
-    # update the rotation of the bullet
-    angle = Math.acos(ty / traveled)
-    dirX = 1
-    if (tx > 0)
-      dirX = -1    
-    @sprite.rotation = dirX*angle + mUtil.GameMath.PI
-
     doKillBullet = false
     spawnExplosion = false
     explosionIgnorePlayer = null
     doTeleport = false
+    hitGround = false
     damage = 0
 
     # ========================================
@@ -135,7 +81,6 @@ class Bullet
         # if hit firer and not yet past self damage distance traveled, continue
         if player == @player && !@canHitFirer
           continue
-        @drawExplosion(@entity.x, @entity.y, false)
         player.addHealth(-@directHitDamage)
         spawnExplosion = true
         doKillBullet = true
@@ -144,7 +89,6 @@ class Bullet
         tileX = mUtil.GameMath.clamp(world.xTileForWorld(@lastPos[0]), 0, world.width-1)
         tileY = mUtil.GameMath.clamp(world.yTileForWorld(@lastPos[1]), 0, world.height-1)
         world.createCrater(tileX, tileY, @craterRadiusPx / world.tileSize)
-        @shost.gcamera.jolt()
         break
 
     # ========================================
@@ -153,8 +97,7 @@ class Bullet
       # create a crater in world from the center of the bullet
       if mConfig.GameConstant.debug
         console.log 'Hit Ground'
-
-      @drawExplosion(@lastPos[0], @lastPos[1], true)
+      hitGround = true
       tileX = mUtil.GameMath.clamp(world.xTileForWorld(@lastPos[0]), 0, world.width-1)
       tileY = mUtil.GameMath.clamp(world.yTileForWorld(@lastPos[1]), 0, world.height-1)
       world.createCrater(tileX, tileY, @craterRadiusPx / world.tileSize)
@@ -162,8 +105,6 @@ class Bullet
       spawnExplosion = true
       if @isTeleport
         doTeleport = true
-      else
-        @shost.gcamera.jolt()
 
     # ========================================
     # Spawn explosion, if necessary, which damages players linearly from
@@ -182,7 +123,7 @@ class Bullet
         dmgFactor = 1.0 - distFromExplosionSq / explosionRadiusSq
         damage = damageDiff * dmgFactor + @explosionMinDamage
         if dmgFactor > 0
-          player.addHealth(-damage)
+          player.addHealth(-Math.ceil(damage))
 
     # If bullet fell too far down, kill it
     if !doKillBullet 
@@ -193,19 +134,101 @@ class Bullet
 
     if doTeleport
       @teleportEnd(@player, @lastPos[0], @lastPos[1])
-      @shost.gcamera.center(@player.sprite)
 
     if doKillBullet
       if mConfig.GameConstant.debug
         console.log 'bullet died'
       @shost.removeBullet(this)
       @kill()
+      return [false, spawnExplosion, hitGround, doTeleport]
+    return [true, spawnExplosion, hitGround, doTeleport]
 
   kill: () ->
-    @sprite.destroy(true)
-    @sprite = null
     @entity.kill()
     @entity = null
+
+class BulletClient extends BulletCore
+
+  constructor: (@shost) ->
+    super @shost
+
+    @sprite = null
+
+    # Draw members for Phaser
+    @explosionGfxScale = 1
+    @particleStart = null
+    @particleAttach = null
+    # need to manually kill attached emitters when die
+    @attachedEmitters = []
+    @particleEnd = null
+
+  initialize: (@player, x, y, velocity, angle, @fx, @fy, spec, client=false) ->
+    super @player, x, y, velocity, angle, @fx, @fy, spec, client
+
+    if mConfig.GameConstant.debug
+      @entity.initPreviz(@shost.game)
+
+    if @particleStart != null
+      @particleStart(@shost.game, x, y)
+
+    if @particleAttach != null
+      @attachedEmitters = @particleAttach(@shost.game, x, y)
+
+  initFromSpec: (spec) ->
+    super spec
+
+    @sprite = new Phaser.Sprite(@shost.game, 0, 0, spec.bullet_image)
+    @sprite.anchor =
+      x: 0.5
+      y: 0.5
+    @sprite.scale.x = @scale
+    @sprite.scale.y = @scale
+    @shost.playgroup.add(@sprite)
+
+    @explosionGfxScale = spec.explosionGfxScale
+    @particleStart = spec.particleStart
+    @particleAttach = spec.particleAttach
+    @particleEnd = spec.particleEnd
+    if @isTeleport
+      @sprite.blendMode = Phaser.blendModes.ADD
+
+  update: (world) ->
+    result = super world
+    alive = result[0]
+    spawnExplosion = result[1]
+    hitGround = result[2]
+    doTeleport = result[3]
+
+    if alive
+      # update the sprite to the ground truth simulated position
+      @sprite.x = @entity.x
+      @sprite.y = @entity.y
+      # Update any attached emitters
+      for emitter in @attachedEmitters
+        emitter.x = @entity.x
+        emitter.y = @entity.y
+      # update rotation of bullet
+      new_pos = [@entity.x, @entity.y]
+      tx = new_pos[0] - @lastPos[0]
+      ty = new_pos[1] - @lastPos[1]
+      traveled = Math.sqrt(tx*tx + ty*ty)
+      angle = Math.acos(ty / traveled)
+      dirX = 1
+      if (tx > 0)
+        dirX = -1    
+      @sprite.rotation = dirX*angle + mUtil.GameMath.PI
+
+    if spawnExplosion
+      @drawExplosion(@lastPos[0], @lastPos[1], hitGround)
+      if !doTeleport
+        @shost.gcamera.jolt()
+    if doTeleport
+      @shost.gcamera.center(@player.sprite)
+
+  kill: () ->
+    super
+    @sprite.destroy(true)
+    @sprite = null
     for emitter in @attachedEmitters
       if emitter != null
         emitter.on = false
@@ -217,22 +240,19 @@ class Bullet
     if @particleEnd != null
       @particleEnd(@shost.game, x, y, hitGround)
 
-
-class BulletSpecFactory
+class BulletSpecFactoryCore
 
   @craterRadiusPx = 26
 
   # This is the basic bullet spec for the simplest bullet.  Other specs 
   # override its values if specified, otherwise will default back to this.
-  @basicSpec = {
+  @basicSpecCore = {
     # volleys and fire rate
     num_volleys: 1,
     bullets_per_volley: 1,
     delay_bw_volleys: 0,
     delay_in_volleys: 0,
     # bullet and damage
-    bullet_image: 'bullet',
-    bullet_scale: 0.3,
     collisionRadiusPx: 16,
     craterRadiusPx: @craterRadiusPx,
     # Damage and explosion damage.  If a direct hit is achieved, the hit player
@@ -246,19 +266,6 @@ class BulletSpecFactory
     explosionRadius: 70,
     explosionMaxDamage: 30,
     explosionMinDamage: 10,
-    # explosion emitters, calls explosion factory methods to generate explosions
-    # at the start of bullet's life, and at the end
-    # can also attach emitters for smoke trail effects
-    particleStart: (game, x, y) -> 
-      em = mEffects.ExplosionFactory.createGlowBasic(game, x, y, 0.3, 0.3)
-      return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.3))
-    particleAttach: null,
-    particleEnd: (game, x, y, hitground=false) -> 
-      if hitground
-        em = mEffects.ExplosionFactory.createPebbleBasic(game, x, y, 0.5)
-      else
-        em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.6)
-      return em.concat(mEffects.ExplosionFactory.createExplosionBasic(game, x, y, 0.6))
     # These are special bullet types, e.g., teleportation
     isTeleport: false,
     teleportEnd: (player, x, y) ->
@@ -266,7 +273,7 @@ class BulletSpecFactory
       player.setY(y)
   }
 
-  @allSpecs = {
+  @allSpecsCore = {
     # Basic shot
     # Crater: medium
     # Damage: low
@@ -275,8 +282,6 @@ class BulletSpecFactory
       num_volleys: 1,
       bullets_per_volley: 1,    # total shots: 1
       # bullet and damage
-      bullet_image: 'bullet',
-      bullet_scale: 0.3,
       collisionRadiusPx: 16,
       craterRadiusPx: @craterRadiusPx,
       directHitDamage: 33,      # max:    33
@@ -294,55 +299,33 @@ class BulletSpecFactory
       delay_bw_volleys: 0.8,
       delay_in_volleys: 0.25,
       # bullet and damage
-      bullet_image: 'missile1',
-      bullet_scale: 0.3,
       collisionRadiusPx: 16,
       craterRadiusPx: 20,
       directHitDamage: 13,      # max: 52
       explosionRadius: 60,
       explosionMaxDamage: 8,   # splash: 32 - 24
       explosionMinDamage: 5,
-      particleStart: (game, x, y) -> 
-        em = mEffects.ExplosionFactory.createGlowBasic(game, x, y, 0.2, 0.1)
-        return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.3))
-      particleAttach: (game, x, y) ->
-        return mEffects.ExplosionFactory.createSmokeTrailBasic(game, x, y, 0.3, 1.8)
-      particleEnd: (game, x, y, hitground=false) ->
-        if hitground
-          em = mEffects.ExplosionFactory.createPebbleBasic(game, x, y, 0.5)
-        else
-          em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.6)
-        return em.concat(mEffects.ExplosionFactory.createExplosionBasic(game, x, y, 0.5))
     },
     # TELEPORTATION
     "2": {
-      bullet_image: 'tbullet',
-      bullet_scale: 0.4,
       collisionRadiusPx: 10,
       craterRadiusPx: 0,
       directHitDamage: 0,
       explosionRadius: 0,
       explosionMaxDamage: 0,
       explosionMinDamage: 0,
-      particleStart: (game, x, y) -> 
-        em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.4)
-        return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.4, 'spark_blue'))
-      particleAttach: (game, x, y) ->
-        return mEffects.ExplosionFactory.createSmokeTrailBasic(game, x, y, 0.6, 4.0, 'spark_blue', true)
-      # These are special bullet types, e.g., teleportation
       isTeleport: true,
-      particleEnd: null
     }
   }
 
   @_getInternalSpec: (wep_str) ->
     res_spec = {}
-    wep_spec = @allSpecs[wep_str]
-    for spec in Object.keys(@basicSpec)
+    wep_spec = @allSpecsCore[wep_str]
+    for spec in Object.keys(@basicSpecCore)
       if wep_spec.hasOwnProperty(spec)
         res_spec[spec] = wep_spec[spec]
       else
-        res_spec[spec] = @basicSpec[spec]
+        res_spec[spec] = @basicSpecCore[spec]
     return res_spec
 
   @getBulletSpec: (wep_num) ->
@@ -354,6 +337,103 @@ class BulletSpecFactory
         bullet_delay = wep.delay_in_volleys * bullet
         specList.push({
           delay: volley_delay + bullet_delay,
+          # XXX README
+          # This is inelegant but every param that is added to the specList here
+          # needs to be duplicated in the @getBulletSpec function of 
+          # BulletSpecFactoryClient, whose function does not call super.  
+          # Should fix this in future
+          bullet: {
+            collisionRadiusPx: wep.collisionRadiusPx,
+            craterRadiusPx: wep.craterRadiusPx,
+            directHitDamage: wep.directHitDamage,
+            explosionRadius: wep.explosionRadius,
+            explosionMaxDamage: wep.explosionMaxDamage,
+            explosionMinDamage: wep.explosionMinDamage,
+            isTeleport: wep.isTeleport,
+            teleportEnd: wep.teleportEnd
+          }
+        })
+    return specList
+
+class BulletSpecFactoryClient extends BulletSpecFactoryCore
+
+  @basicSpec = {
+    # what the bullet looks like
+    bullet_image: 'bullet',
+    bullet_scale: 0.3,
+    # explosion emitters, calls explosion factory methods to generate explosions
+    # at the start of bullet's life, and at the end
+    # can also attach emitters for smoke trail effects
+    particleStart: (game, x, y) -> 
+      em = mEffects.ExplosionFactory.createGlowBasic(game, x, y, 0.4, 0.3)
+      return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.4))
+    particleAttach: null,
+    particleEnd: (game, x, y, hitground=false) -> 
+      if hitground
+        em = mEffects.ExplosionFactory.createPebbleBasic(game, x, y, 0.5)
+      else
+        em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.6)
+      return em.concat(mEffects.ExplosionFactory.createExplosionBasic(game, x, y, 0.6))
+  }
+
+  @allSpecs = {
+    "0": {
+      bullet_image: 'bullet',
+      bullet_scale: 0.3,
+    }
+    "1": {
+      bullet_image: 'missile1',
+      bullet_scale: 0.3,
+      particleStart: (game, x, y) -> 
+        em = mEffects.ExplosionFactory.createGlowBasic(game, x, y, 0.3, 0.2)
+        return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.4))
+      particleAttach: (game, x, y) ->
+        return mEffects.ExplosionFactory.createSmokeTrailBasic(game, x, y, 0.3, 1.8)
+      particleEnd: (game, x, y, hitground=false) ->
+        if hitground
+          em = mEffects.ExplosionFactory.createPebbleBasic(game, x, y, 0.5)
+        else
+          em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.6)
+        return em.concat(mEffects.ExplosionFactory.createExplosionBasic(game, x, y, 0.5))
+    }
+    "2": {
+      bullet_image: 'tbullet',
+      bullet_scale: 0.4,
+      particleStart: (game, x, y) -> 
+        em = mEffects.ExplosionFactory.createFlareBasic(game, x, y, 0.4)
+        return em.concat(mEffects.ExplosionFactory.createSparksBasic(game, x, y, 0.4, 'spark_blue'))
+      particleAttach: (game, x, y) ->
+        return mEffects.ExplosionFactory.createSmokeTrailBasic(game, x, y, 0.6, 4.0, 'spark_blue', true)
+      # These are special bullet types, e.g., teleportation
+      particleEnd: null
+    }
+  }
+
+  @_getInternalSpec: (wep_str) ->
+    res_spec = super wep_str
+    wep_spec = @allSpecs[wep_str]
+    for spec in Object.keys(@basicSpec)
+      if wep_spec.hasOwnProperty(spec)
+        res_spec[spec] = wep_spec[spec]
+      else
+        res_spec[spec] = @basicSpec[spec]
+    return res_spec
+
+
+  @getBulletSpec: (wep_num) ->
+    specList = []
+    wep = @_getInternalSpec(wep_num.toString())
+    for volley in [0...wep.num_volleys]
+      for bullet in [0...wep.bullets_per_volley]
+        volley_delay = wep.delay_bw_volleys * volley
+        bullet_delay = wep.delay_in_volleys * bullet
+        specList.push({
+          delay: volley_delay + bullet_delay,
+          # XXX README 
+          # This is inelegant but every param that is added to the specList here
+          # needs to be duplicated in the @getBulletSpec function of 
+          # BulletSpecFactoryCore, whose function does not call super.  
+          # Should fix this in future
           bullet: {
             bullet_image: wep.bullet_image,
             bullet_scale: wep.bullet_scale,
@@ -370,8 +450,9 @@ class BulletSpecFactory
             teleportEnd: wep.teleportEnd
           }
         })
-
     return specList
 
-exports.Bullet = Bullet
-exports.BulletSpecFactory = BulletSpecFactory
+exports.BulletCore = BulletCore
+exports.BulletClient = BulletClient
+exports.BulletSpecFactoryCore = BulletSpecFactoryCore
+exports.BulletSpecFactoryClient = BulletSpecFactoryClient

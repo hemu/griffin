@@ -6,26 +6,19 @@ mCam = require 'world/game-camera'
 mPlayer = require 'entity/player'
 State = require 'controller/state'
 
-class PlayController
+class PlayControllerCore
 
-  constructor: (@game, @sessionController) ->
-    
+  constructor: (@sessionController) ->
+    # ================================
+    # CORE
     @sessionId = null  # The player's secret session id, known only to him
     @players = []   # array of Player objects
     @bullets = []
     @active_player = null
     @game_time_remaining = 0
 
-    # Add all sprites in play to this group so that the mUi.GameUI's group sits
-    # on top of all of them
-    @playgroup = null
-
     # p2.js world which runs our physics simulation
     @p2world = null
-
-    # game camera
-    @gcamera = null
-
     @gameOver = false
     @setState(State.INIT)
 
@@ -35,31 +28,14 @@ class PlayController
   getState: ->
     return @state
 
-  initialize: (initConfig) ->
+  initialize: (initConfig, client=false) ->
     @setState(State.SETUP)
-    mInput.GameInput.controller = this
-    mInput.GameInput.setupInputs()
-    mUi.GameUI.initialize(this)
-    
-    # for particle physics
-    @game.physics.startSystem(Phaser.Physics.ARCADE)
-
-    @game.camera.scale.set(
-      mConfig.GameConstant.cameraScale,
-      mConfig.GameConstant.cameraScale
-      )
-
-    # Almost all of the sprites in game go in here, besides the background
-    # image and midground graphics, and the ui
-    @playgroup = @game.add.group()
 
     # Setup world
     # This is our own game logic World class, not to be confused with
     # Phaser's built in @game.world
-    @world = mWorld.WorldCreator.loadFromImage(this, 'world_divide')
+    @world = mWorld.WorldCreator.loadFromImage(this, 'world_divide', client)
     @world.setSpawnOrder([2,0,1,3])
-
-    @game.world.bringToTop(@playgroup)
 
     # This is the p2 physics simulated world, which is where the
     # physics representations of the players and bullets etclive.
@@ -83,6 +59,8 @@ class PlayController
 
     @sessionId = initConfig['myid']
 
+    # XXX Need to further refactor this in future as Player class is separated
+    # into core and client versions as well
     for own id,playerConfig of initConfig['init']
       # for now just set the name same as id
       name = id
@@ -90,9 +68,13 @@ class PlayController
       if spawnPos == undefined or spawnPos == null
         throw new Error "spawn position not found for player #{id}"
       # instantiate player objects and add to @players list
-      player = new mPlayer.Player(this)
+      if client
+        player = new mPlayer.PlayerClient(this)
+      else
+        player = new mPlayer.PlayerCore(this)
       player.initialize(this, id, spawnPos[0], spawnPos[1],
         mConfig.GameConstant.playerScale, 0)
+      #player.initReticule()
       player.initHealth(200)
       player.setName(name)
       @players.push player
@@ -113,18 +95,8 @@ class PlayController
         if i == num_players
           break
 
-    @gcamera = new mCam.GameCamera(this)
-    @gcamera.initialize(1.0)
     @active_player = @players[0]
     @active_player.active = true
-    @active_player.showUI()
-    @refreshUI()
-    @gcamera.follow(@active_player.sprite)
-    @gcamera.easeTo(@active_player.getX() - @game.width/2, @active_player.getY() - @game.height/2)
-
-    mUi.GameUI.bringToTop()
-    #@game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR).onDown.add(@playerFire, this)
-    #@game.input.keyboard.addKey(Phaser.Keyboard.Z).onDown.add(@toggleZoom, this)
 
   changeTurn: (turnConfig) ->
     console.log turnConfig
@@ -138,12 +110,15 @@ class PlayController
       console.log 'NOT MY TURN'
       @setState(State.TURN_WAIT)
 
+  render: ->
+    @world.render()
+
   update: (dt) ->
     # step p2world for physics simulation to occur
     @p2world.step(dt)
-    
+
     if @gameOver
-      return
+      return false
 
     for player in @players
       player.update(dt, @world)
@@ -152,6 +127,102 @@ class PlayController
       if bullet != null
         bullet.update(@world)
 
+    return true
+
+  playerMoveLeft: (dt) ->
+    @active_player.moveLeft(dt, @world)
+
+  playerMoveRight: (dt) ->
+    @active_player.moveRight(dt, @world)
+
+  playerAimUp: (dt) ->
+    @active_player.aimUp(dt)
+
+  playerAimDown: (dt) ->
+    @active_player.aimDown(dt)
+
+  playerChargeShot: (dt) ->
+    @active_player.chargeShot(dt)
+
+  playerFire: ->
+    @active_player.fire()
+
+  playerSetWeapon: (num) ->
+    if @active_player == null
+      return
+    @active_player.setWeapon(num)
+
+  removePlayer: (rplayer) ->
+    console.log 'REMOVING PLAYER'
+    console.log rplayer
+    if @active_player == rplayer
+      @active_player = null
+    # first remove reference to player
+    remaining_players = []
+    for player in @players
+      if player != rplayer
+        remaining_players.push(player)
+    @players = remaining_players
+
+    if @players.length == 1
+      @gameOver = true
+      return
+
+  removeBullet: (removeBullet) ->
+    remaining_bullets = []
+    for bullet in @bullets
+      if bullet != removeBullet
+        remaining_bullets.push(bullet)      
+    @bullets = remaining_bullets
+
+class PlayControllerClient extends PlayControllerCore
+
+  constructor: (@game, @sessionController) ->
+
+    super @sessionController
+
+    # ================================
+    # CLIENT
+    # Almost all of the sprites in game go in here, besides the background
+    # image and midground graphics, and the ui
+    @playgroup = @game.add.group()
+    # game camera
+    @gcamera = null
+
+  initialize: (initConfig) ->
+
+    super initConfig, true
+    
+    mInput.GameInput.controller = this
+    mInput.GameInput.setupInputs()
+    mUi.GameUI.initialize(this)
+    
+    # for particle physics
+    @game.physics.startSystem(Phaser.Physics.ARCADE)
+
+    @game.camera.scale.set(
+      mConfig.GameConstant.cameraScale,
+      mConfig.GameConstant.cameraScale
+      )
+
+    @game.world.bringToTop(@playgroup)
+
+    @gcamera = new mCam.GameCamera(this)
+    @gcamera.initialize(1.0)
+    
+    @active_player.showUI()
+    @refreshUI()
+    @gcamera.follow(@active_player.sprite)
+    @gcamera.easeTo(@active_player.getX() - @game.width/2, @active_player.getY() - @game.height/2)
+
+    mUi.GameUI.bringToTop()
+  
+  update: (dt) ->
+    result = super dt
+    
+    if @gameOver
+      return
+    
     @gcamera.update(dt)
 
     if @game_time_remaining > 0
@@ -173,30 +244,21 @@ class PlayController
     mUi.GameUI.updateShotBar(
       @active_player.cur_shot_points / @active_player.max_shot_points)
 
-  render: ->
-    @world.render()
-
   playerMoveLeft: (dt) ->
+    super dt
     @gcamera.follow(@active_player.sprite)
-    @active_player.moveLeft(dt, @world)
 
   playerMoveRight: (dt) ->
+    super dt
     @gcamera.follow(@active_player.sprite)
-    @active_player.moveRight(dt, @world)
-
-  playerAimUp: (dt) ->
-    @active_player.aimUp(dt)
-
-  playerAimDown: (dt) ->
-    @active_player.aimDown(dt)
 
   playerChargeShot: (dt) ->
-    @active_player.chargeShot(dt)
+    super dt
     mUi.GameUI.updateChargeBar(
       @active_player.cur_charge / @active_player.max_charge)
 
   playerFire: ->
-    @active_player.fire()
+    super
     mUi.GameUI.updateChargeBar(0)
     mUi.GameUI.refreshChargeSave(@active_player.last_charge / @active_player.max_charge)
     mInput.GameInput.spaceIsDown = false
@@ -208,15 +270,6 @@ class PlayController
   playerReleaseCamera: ->
     @gcamera.playerReleaseCamera()
 
-  playerSetWeapon: (num) ->
-    # XXX Currently implementation won't work for multiplayer.  Need to 
-    # associate Player objects with sessionid of human players, then set the
-    # Player with corresponding human sessionid's weapon.
-    # For now just set active player while it's "single player"
-    if @active_player == null
-      return
-    @active_player.setWeapon(num)
-
   refreshUI: ->
     mUi.GameUI.updateMoveBar(
       1.0 - @active_player.cur_movement / @active_player.max_movement)
@@ -225,28 +278,15 @@ class PlayController
     mInput.GameInput.spaceIsDown = false
     mUi.GameUI.refreshWeaponUI(@active_player.wep_num)
 
-  removePlayer: (removePlayer) ->
-    if @active_player == removePlayer
-      @active_player = null
-    # first remove reference to player
-    remaining_players = []
-    for player in @players
-      if player != removePlayer
-        remaining_players.push(player)
-    @players = remaining_players
-
-    if @players.length == 1
-      @gameOver = true
-      @gameOverText = new Phaser.Text(@game, 200, 200, 'Game Over')
+  removePlayer: (rplayer) ->
+    super rplayer
+    console.log 'CLIENT REMOVE PLAYER'
+    console.log @players.length
+    console.log @gameOver
+    if @gameOver
+      @gameOverText = new Phaser.Text(@game, 500, 300, 'Game Over')
       @gcamera.addFixedSprite(@gameOverText)
-      return
-
-  removeBullet: (removeBullet) ->
-    remaining_bullets = []
-    for bullet in @bullets
-      if bullet != removeBullet
-        remaining_bullets.push(bullet)      
-    @bullets = remaining_bullets
 
 
-exports.PlayController = PlayController
+exports.PlayControllerCore = PlayControllerCore
+exports.PlayControllerClient = PlayControllerClient

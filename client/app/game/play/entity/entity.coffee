@@ -6,7 +6,7 @@ mUtil = require 'util/game-util'
 # Contains one p2.js physics body for physics sim, and a box size
 # which acts as its collision body
 #
-class Entity
+class EntityCore
 
   constructor: (@shost) ->
     @x = 0
@@ -23,9 +23,6 @@ class Entity
     @fx = 0
     @fy = 0
 
-    @bmp = null
-    @previz = null
-
   initialize: (@x, @y, @width, @height, @offX, @offY) ->
     @p2body = new p2.Body({
           mass: 10,
@@ -39,14 +36,6 @@ class Entity
 
   setForce: (@fx, @fy) ->
     null
-
-  initPreviz: (game) ->
-    # Make the test bmp for drawing
-    @bmp = game.make.bitmapData(@width, @height)
-    @previz = new Phaser.Sprite(game, 0, 0, @bmp)
-    @shost.playgroup.add(@previz)
-    @bmp.ctx.fillStyle = 'rgba(255,0,0,0.5)'
-    @bmp.ctx.fillRect(0, 0, @width, @height)
 
   minX: ->
     return @x + @offX - Math.floor(@width/2)
@@ -80,17 +69,9 @@ class Entity
     @p2body.force[0] = @fx
     @p2body.force[1] = @fy
 
-    if @previz != null
-      @previz.x = @x + @offX - @width/2
-      @previz.y = @y + @offY - @height/2
-
     return oldx !=@x || oldy != @y
 
   kill: ->
-    if @previz
-      @previz.destroy(true)
-      @previz = null
-    @bmp = null
     @p2body = null
 
   collidesWithEntity: (entity) ->
@@ -128,4 +109,35 @@ class Entity
           return true
     return false
 
-exports.Entity = Entity
+class EntityClient extends EntityCore
+
+  constructor: (@shost) ->
+    super @shost
+    @bmp = null
+    @previz = null
+
+  initPreviz: (game) ->
+    # Make the test bmp for drawing
+    @bmp = game.make.bitmapData(@width, @height)
+    @previz = new Phaser.Sprite(game, 0, 0, @bmp)
+    @shost.playgroup.add(@previz)
+    @bmp.ctx.fillStyle = 'rgba(255,0,0,0.5)'
+    @bmp.ctx.fillRect(0, 0, @width, @height)
+
+  update: ->
+    ret = super
+    if @previz != null
+      @previz.x = @x + @offX - @width/2
+      @previz.y = @y + @offY - @height/2
+    return ret
+
+  kill: ->
+    if @previz
+      @previz.destroy(true)
+      @previz = null
+    @bmp = null
+    super
+
+
+exports.EntityCore = EntityCore
+exports.EntityClient = EntityClient
